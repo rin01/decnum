@@ -1,0 +1,20 @@
+
+IMPORTANT:
+==========
+
+The original files decCommon.c and decBasic.c MUST BE MODIFIED, so that they are not compiled by cgo.
+
+In the first line of these two files, add the line:
+
+// +build ignore
+
+followed by a blank line.
+
+If not, "go build" will try to compile these two files, and errors occur.
+This is because these files are "imported" by files like decQuad.c.
+They are not meant to be compiled stand-alone, but inside other decQuad.c, etc.
+
+
+
+
+

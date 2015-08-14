@@ -1,0 +1,14 @@
+
+This rsql/quad/c_files/mydecquad directory is not used anymore !
+================================================================
+
+Compiling the "rsql/quad" package was a two-steps process:
+	1) running "make", to compile the .c files using regular gcc. This produces a library into a temporary directory.
+	2) running "go build", to compile mydecquad.c and mydecquad.h, and the .go files, and linking with the library created in step 1)
+
+But it is more simple to put all necessary .c and .h files into rsql/quad directory, and let "go build" automatically compile these files along with the .go files.
+
+This has been done on 2014-08-13.
+
+
+
