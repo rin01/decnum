@@ -39,6 +39,7 @@ Parameters are always passed from Go to C as value, and in the other direction t
 Strings are passed as array in struct, so they are passed by value too.
 
 __Installation__:
+
     go get github.com/rin01/decnum
 
 

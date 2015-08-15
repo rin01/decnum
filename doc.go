@@ -8,8 +8,8 @@ Example of use:
 
 	var (
 		ctx decnum.Context
-		a   decnum.DecQuad
-		b   decnum.DecQuad
+		a   decnum.DecQuad  // unlike Go variable, the uninitialized value is not zero, but garbage.
+		b   decnum.DecQuad  //    so, if you need a variable to be 0, do         x = decnum.Zero()
 		r   decnum.DecQuad
 	)
 
