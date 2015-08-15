@@ -9,7 +9,6 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"unsafe"
 )
 
 // Note: in the comment block for cgo above, the path for LDFLAGS must be an "absolute" path.
@@ -24,9 +23,9 @@ type DecQuad struct {
 }
 
 const (
-	DECQUAD_Pmax        = C.DECQUAD_Pmax          // number of digits in coefficient
-	DECQUAD_Bytes       = C.DECQUAD_Bytes         // size in bytes of decQuad
-	DECQUAD_String      = C.DECQUAD_String        // buffer capacity for C.decQuadToString()
+	DECQUAD_Pmax   = C.DECQUAD_Pmax   // number of digits in coefficient
+	DECQUAD_Bytes  = C.DECQUAD_Bytes  // size in bytes of decQuad
+	DECQUAD_String = C.DECQUAD_String // buffer capacity for C.decQuadToString()
 )
 
 var (
@@ -78,8 +77,6 @@ func assert(val bool) {
 		panic("assertion failed")
 	}
 }
-
-
 
 type Round_mode_t int
 
@@ -555,19 +552,6 @@ func (context *Context) Min(a DecQuad, b DecQuad) (r DecQuad) {
 /*                                                                      */
 /************************************************************************/
 
-// byteslice_into_C creates a byteslice, with p (pointer into C heap) as underlying array.
-// length is string length, not capacity.
-//
-func byteslice_into_C(p *C.char, length C.size_t) []byte {
-	var (
-		bs_into_c []byte
-	)
-
-	bs_into_c = (*[0x7fffffff]byte)(unsafe.Pointer(p))[:length]
-
-	return bs_into_c
-}
-
 // AppendQuad appends string representation of decQuad into byte slice.
 // This representation is the BEST TO DISPLAY decQuad, because it shows all numbers having exponent between 0 and -34 (DECQUAD_Pmax), that is, all 34 significant digits, without using exponent notation.
 //
@@ -577,34 +561,36 @@ func byteslice_into_C(p *C.char, length C.size_t) []byte {
 func AppendQuad(dst []byte, a *DecQuad) []byte {
 	var (
 		ret_str   C.Ret_str
-		str_slice []byte
+		str_slice []byte = make([]byte, DECQUAD_String)
 
 		ret               C.Ret_BCD
 		d                 byte
 		skip_leading_zero bool = true
-		inf_nan            C.uint32_t
+		inf_nan           C.uint32_t
 		exp               int32
 		sign              uint32
-		BCD_slice         []byte
+		BCD_slice         []byte = make([]byte, DECQUAD_Pmax)
 
 		buff [DECQUAD_String]byte // array size is max of DECQUAD_String and DECQUAD_Pmax. DECQUAD_String is larger.
 	)
 
 	// fill BCD array
 
-	ret = C.mdq_to_mallocated_BCD(a.val) // sign will be 1 for negative and non-zero number, else, 0. If Inf or Nan, returns an error.
-	BCD_slice = byteslice_into_C(ret.BCD, ret.capacity)
+	ret = C.mdq_to_BCD(a.val) // sign will be 1 for negative and non-zero number, else, 0. If Inf or Nan, returns an error.
+	for i := 0; i < DECQUAD_Pmax; i++ {
+		BCD_slice[i] = byte(ret.BCD[i])
+	}
 	exp = int32(ret.exp)
 	sign = uint32(ret.sign)
 	inf_nan = ret.inf_nan
 
-	if exp > 0 || exp < -DECQUAD_Pmax || inf_nan != 0 { // if decQuad value is not in NUMERIC range, or Inf or Nan, we want our function to output the number, or Infinity, or NaN.
-		ret_str = C.mdq_to_mallocated_QuadToString(a.val) // may use exponent notation
-		str_slice = byteslice_into_C(ret_str.s, ret_str.length)
+	if exp > 0 || exp < -DECQUAD_Pmax || inf_nan != 0 { // if decQuad value is not in 34 digits range, or Inf or Nan, we want our function to output the number, or Infinity, or NaN.
+		ret_str = C.mdq_to_QuadToString(a.val) // may use exponent notation
+		for i := 0; i < int(ret_str.length); i++ {
+			str_slice[i] = byte(ret_str.s[i])
+		}
 
-		dst = append(dst, str_slice...) // write buff into destination and return
-		C.free(unsafe.Pointer(ret_str.s))
-		C.free(unsafe.Pointer(ret.BCD))
+		dst = append(dst, str_slice[:ret_str.length]...) // write buff into destination and return
 		return dst
 	}
 
@@ -639,7 +625,6 @@ func AppendQuad(dst []byte, a *DecQuad) []byte {
 	dst = append(dst, buff[:i]...) // write integral part into destination
 
 	if exp == 0 { // if no fractional part, just return
-		C.free(unsafe.Pointer(ret.BCD))
 		return dst
 	}
 
@@ -653,7 +638,6 @@ func AppendQuad(dst []byte, a *DecQuad) []byte {
 
 	dst = append(dst, buff[:i]...) // write fractional part into destination
 
-	C.free(unsafe.Pointer(ret.BCD))
 	return dst
 }
 

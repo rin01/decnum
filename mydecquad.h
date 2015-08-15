@@ -18,7 +18,14 @@ void mdq_init(void);
 
 #define MAX_STRING_SIZE  50
 
-// struct used to retrieve both a decQuad result and a decContext, from an operation.
+// struct used to pass strings from Go to C, by value.
+//
+typedef struct Strarray_t {
+  char arr[MAX_STRING_SIZE];
+} Strarray_t;
+
+// struct used to pass strings from C to Go, by value.
+// It passes both a decQuad result and a decContext, from an operation.
 // This way, the result of an operation (value and context) are returned to the caller as value.
 // No need to fuss with pointers.
 //
@@ -27,31 +34,31 @@ typedef struct Ret_decQuad_t {
   decQuad     val;
 } Ret_decQuad_t;
 
-// struct used to pass strings from Go to C and vice-versa.
-// This way, strings are just passed as value, no need to fuss with pointers.
+// struct used to pass strings from C to Go, by value.
 //
-typedef struct Strarray_t {
-  char arr[MAX_STRING_SIZE];
-} Strarray_t;
-
 typedef struct Ret_BCD {
   uint32_t   inf_nan;
-  char      *BCD;
-  size_t     capacity;
+  char       BCD[DECQUAD_Pmax];
   int32_t    exp;
   uint32_t   sign;
 } Ret_BCD;
 
+// struct used to pass strings from C to Go, by value.
+//
 typedef struct Ret_str {
-  char      *s;
+  char       s[DECQUAD_String];
   size_t     length;
 } Ret_str;
 
+// struct used to pass strings from C to Go, by value.
+//
 typedef struct Ret_int32_t {
   decContext  set;
   int32_t     val;
 } Ret_int32_t;
 
+// struct used to pass strings from C to Go, by value.
+//
 typedef struct Ret_int64_t {
   decContext  set;
   int64_t     val;
@@ -88,8 +95,8 @@ Ret_decQuad_t    mdq_min(decQuad a, decQuad b, decContext set);
 
 Ret_int32_t      mdq_to_int32(decQuad a, decContext set, int round);
 Ret_int64_t      mdq_to_int64(decQuad a, decContext set, int round);
-Ret_str          mdq_to_mallocated_QuadToString(decQuad a);
-Ret_BCD          mdq_to_mallocated_BCD(decQuad a);
+Ret_str          mdq_to_QuadToString(decQuad a);
+Ret_BCD          mdq_to_BCD(decQuad a);
 
 Ret_decQuad_t    mdq_from_string(Strarray_t strarray, decContext set);
 Ret_decQuad_t    mdq_from_int64(int64_t value, decContext set);

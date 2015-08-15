@@ -354,14 +354,10 @@ Ret_decQuad_t mdq_min(decQuad a, decQuad b, decContext set) {
    Never fails.
 
    The function decQuadToString() uses exponential notation if number < 0 and too many 0 after decimal point.
-
-   IMPORTANT: the caller must free the returned buffer when he is finished with it. Else, memory leaks occur.
 */
-Ret_str mdq_to_mallocated_QuadToString(decQuad a) {
+Ret_str mdq_to_QuadToString(decQuad a) {
 
-  Ret_str  ret = {.s = NULL, .length = 0};
-
-  ret.s = (char *)xmalloc(DECQUAD_String);
+  Ret_str  ret = {.length = 0};
 
   decQuadToString(&a, ret.s);
 
@@ -375,22 +371,15 @@ Ret_str mdq_to_mallocated_QuadToString(decQuad a) {
 
    The returned fields are:
       BCD:       byte array. The coefficient is written one digit per byte.
-      capacity:  size of BCD byte array (always DECQUAD_Pmax)
       exp:       if a is not Inf or Nan, will contain the exponent.
       sign:      if negative and not zero, sign bit is set.
-                 THE SIGN IS VALID ALSO IF THE FUNCTION RETURNS MDQ_ERROR_INFINITE, so that we can know if it is +Inf or -Inf.
-
-   Returns ret.mdqerr == 0 if success, or MDQ_ERROR_INFINITE or MDQ_ERROR_NAN.
-
-   IMPORTANT: the caller must free the returned buffer when he is finished with it. Else, memory leaks occur.
+                 THE SIGN IS VALID ALSO IF THE FUNCTION RETURNS MDQ_INFINITE, so that we can know if it is +Inf or -Inf.
 */
-Ret_BCD mdq_to_mallocated_BCD(decQuad a) {
+Ret_BCD mdq_to_BCD(decQuad a) {
 
   int32_t     exp;
   uint32_t    sign;
-  Ret_BCD     ret = {.inf_nan = 0, .BCD = NULL, .capacity = 0, .exp = 0, .sign = 0};
-
-  ret.BCD = (char *)xmalloc(DECQUAD_Pmax);
+  Ret_BCD     ret = {.inf_nan = 0, .exp = 0, .sign = 0};
 
   // convert to BCD
 
@@ -410,7 +399,6 @@ Ret_BCD mdq_to_mallocated_BCD(decQuad a) {
       return ret;
   }
 
-  ret.capacity = DECQUAD_Pmax;
   ret.exp      = exp;
   ret.sign     = sign;
 
