@@ -15,7 +15,6 @@ import (
 
 func main() {
 	var (
-		err error
 		ctx decnum.Context
 		a   decnum.DecQuad
 		b   decnum.DecQuad
@@ -43,11 +42,11 @@ func main() {
 	ctx.SetRounding(decnum.ROUND_HALF_EVEN) // we can change it again
 	fmt.Printf("rounding: %s\n", ctx.Rounding())
 
-	if a, err = ctx.FromString(os.Args[1]); err != nil { // convert first argument to DecQuad
-		log.Fatal(err)
-	}
-	if b, err = ctx.FromString(os.Args[2]); err != nil { // convert 2nd argument to DecQuad
-		log.Fatal(err)
+	a = ctx.FromString(os.Args[1]) // convert first argument to DecQuad
+	b = ctx.FromString(os.Args[2]) // convert 2nd argument to DecQuad
+
+	if err := ctx.Error(); err != nil { // check if string conversion succeeded
+		fmt.Println("ERROR: incorrect string input...")
 	}
 
 	fmt.Println("")
@@ -133,4 +132,5 @@ func main() {
 	}
 
 	fmt.Printf("quantization of %s with %s is %s\n", a.String(), b.String(), q.String())
+
 }

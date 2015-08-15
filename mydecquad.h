@@ -69,9 +69,11 @@ decContext       mdq_context_default(decContext set, uint32_t kind);
 int              mdq_context_get_rounding(decContext set);
 decContext       mdq_context_set_rounding(decContext set, int rounding);
 uint32_t         mdq_context_get_status(decContext set);
+decContext       mdq_context_set_status(decContext set, uint32_t flag);
 decContext       mdq_context_zero_status(decContext set);
 
 decQuad          mdq_zero();
+decQuad          mdq_nan();
 Ret_decQuad_t    mdq_minus(decQuad a, decContext set);
 Ret_decQuad_t    mdq_add(decQuad a, decQuad b, decContext set);
 Ret_decQuad_t    mdq_subtract(decQuad a, decQuad b, decContext set);

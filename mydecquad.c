@@ -70,6 +70,14 @@ uint32_t mdq_context_get_status(decContext set) {
 }
 
 
+decContext mdq_context_set_status(decContext set, uint32_t flag) {
+
+  decContextSetStatus(&set, flag);
+
+  return set;
+}
+
+
 decContext mdq_context_zero_status(decContext set) {
 
   decContextZeroStatus(&set);
@@ -87,6 +95,20 @@ decQuad mdq_zero() {
   decQuad  val;
 
   decQuadZero(&val);
+
+  return val;
+}
+
+
+decQuad mdq_nan() {
+  decContext set;
+  decQuad    val;
+
+  decContextDefault(&set, DEC_INIT_DECQUAD);
+
+  decQuadFromString(&val, "Nan", &set);
+
+  //assert(set.status & DEC_Errors == 0); // a status is set
 
   return val;
 }

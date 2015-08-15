@@ -9,6 +9,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // Note: in the comment block for cgo above, the path for LDFLAGS must be an "absolute" path.
@@ -61,9 +62,11 @@ func init() {
 
 	assert(C.DECSUBSET == 0) // because else, we should define Flag_Lost_digits as status flag
 
-	// set global variable g_zero to 0
+	// set global variables g_zero to 0, and g_nan to Nan
 
 	g_zero = zero_for_init()
+
+	g_nan = nan_for_init()
 }
 
 /************************************************************************/
@@ -128,11 +131,11 @@ const (
 	Flag_Inexact              Status_t = C.DEC_Inexact
 	Flag_Invalid_context      Status_t = C.DEC_Invalid_context
 	Flag_Invalid_operation    Status_t = C.DEC_Invalid_operation
-	Flag_Overflow  Status_t = C.DEC_Overflow
-	Flag_Clamped   Status_t = C.DEC_Clamped
-	Flag_Rounded   Status_t = C.DEC_Rounded
-	Flag_Subnormal Status_t = C.DEC_Subnormal
-	Flag_Underflow Status_t = C.DEC_Underflow // e.g. 1e-6000/1e1000
+	Flag_Overflow             Status_t = C.DEC_Overflow
+	Flag_Clamped              Status_t = C.DEC_Clamped
+	Flag_Rounded              Status_t = C.DEC_Rounded
+	Flag_Subnormal            Status_t = C.DEC_Subnormal
+	Flag_Underflow            Status_t = C.DEC_Underflow // e.g. 1e-6000/1e1000
 
 	//Flag_Lost_digits          Status_t = C.DEC_Lost_digits // exists only if DECSUBSET is set, which is not the case by default
 )
@@ -255,6 +258,15 @@ func (context *Context) Status() Status_t {
 	return Status_t(C.mdq_context_get_status(context.set))
 }
 
+// SetStatus sets a status bit in the status of the context.
+//
+// Normally, only library modules use this function. Applications have no reason to set status bits.
+//
+func (context *Context) SetStatus(flag Status_t) {
+
+	context.set = C.mdq_context_set_status(context.set, C.uint32_t(flag))
+}
+
 // ResetStatus clears all bits of the status field of the context.
 // You can continue to use this context for a new series of operations.
 //
@@ -284,7 +296,10 @@ func (context *Context) Error() error {
 /*                                                                      */
 /************************************************************************/
 
-var g_zero DecQuad // a constant DecQuad with value 0
+var (
+	g_zero DecQuad // a constant DecQuad with value 0
+	g_nan  DecQuad // a constant DecQuad with value Nan
+)
 
 // used only by init() to initialize the global variable g_zero.
 //
@@ -296,11 +311,32 @@ func zero_for_init() (r DecQuad) {
 	return DecQuad{val: val}
 }
 
+// used only by init() to initialize the global variable g_Nan.
+//
+func nan_for_init() (r DecQuad) {
+	var val C.decQuad
+
+	val = C.mdq_nan()
+
+	return DecQuad{val: val}
+}
+
 // return a 0 DecQuad value.
+//
+//     r = Zero()  // assign 0 to the DecQuad r
 //
 func Zero() (r DecQuad) {
 
 	return g_zero
+}
+
+// return a Nan DecQuad value.
+//
+//     r = Nan()  // assign Nan to the DecQuad r
+//
+func Nan() (r DecQuad) {
+
+	return g_nan
 }
 
 // Minus returns -a.
@@ -694,15 +730,19 @@ const MAX_STRING_SIZE = C.MAX_STRING_SIZE
 
 // FromString returns a DecQuad from a string.
 //
-func (context *Context) FromString(s string) (r DecQuad, err error) {
+func (context *Context) FromString(s string) (r DecQuad) {
 	var (
 		i        int
 		strarray C.Strarray_t
 		result   C.Ret_decQuad_t
 	)
 
+	s = strings.TrimSpace(s)
+
 	if len(s) > MAX_STRING_SIZE {
-		return r, errors.New("decnum error: string too long")
+		context.SetStatus(Flag_Conversion_syntax)
+		r = Nan()
+		return r
 	}
 
 	for i = 0; i < len(s); i++ {
@@ -715,7 +755,7 @@ func (context *Context) FromString(s string) (r DecQuad, err error) {
 
 	context.set = result.set
 
-	return DecQuad{val: result.val}, nil
+	return DecQuad{val: result.val}
 }
 
 // FromInt32 returns a DecQuad from a int32 value.
