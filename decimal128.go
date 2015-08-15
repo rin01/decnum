@@ -1,8 +1,5 @@
 package decnum
 
-
-
-
 /*
 
 #include "mydecquad.h"
@@ -10,8 +7,9 @@ package decnum
 import "C"
 
 import (
-	"log"
 	"errors"
+	"fmt"
+	"unsafe"
 )
 
 // Note: in the comment block for cgo above, the path for LDFLAGS must be an "absolute" path.
@@ -20,8 +18,8 @@ import (
 //       See   Issue 5428 in May 2013: cmd/ld: relative #cgo LDFLAGS -L does not work
 //             This problem is still not resolved in May 2014.
 
-// MyQuad is a struct that just contains a C.decQuad value.
-type MyQuad struct {
+// DecQuad is just a struct with a C.decQuad value, which is an array of 16 bytes.
+type DecQuad struct {
 	val C.decQuad
 }
 
@@ -29,20 +27,19 @@ const (
 	S_DECQUAD_Pmax        = C.DECQUAD_Pmax          // number of digits in coefficient
 	S_DECQUAD_Bytes       = C.DECQUAD_Bytes         // size in bytes of decQuad
 	S_DECQUAD_String      = C.DECQUAD_String        // buffer capacity for C.decQuadToString()
-	S_STRING_RAW_CAPACITY = C.S_STRING_RAW_CAPACITY // buffer capacity for C.mdq_to_mallocated_string_raw()
 )
 
 var (
-		ERROR_DEC_UNLISTED = errors.New("decnum: Unlisted")
-		ERROR_DEC_INVALID_OPERATION = errors.New("decnum: Invalid operation")
-		ERROR_DEC_DIVISION_BY_ZERO = errors.New("decnum: Division by zero")
-		ERROR_DEC_OVERFLOW = errors.New("decnum: Overflow")
-		ERROR_DEC_UNDERFLOW = errors.New("decnum: Underflow")
-		ERROR_DEC_DIVISION_IMPOSSIBLE = errors.New("decnum: Division impossible")
-		ERROR_DEC_DIVISION_UNDEFINED = errors.New("decnum: Division undefined")
-		ERROR_DEC_CONVERSION_SYNTAX = errors.New("decnum: Conversion syntax")
-		ERROR_DEC_INSUFFICIENT_STORAGE = errors.New("decnum: Insufficient storage")
-		ERROR_DEC_INVALID_CONTEXT = errors.New("decnum: Invalid Context")
+	ERROR_DEC_UNLISTED             = errors.New("decnum: Unlisted")
+	ERROR_DEC_INVALID_OPERATION    = errors.New("decnum: Invalid operation")
+	ERROR_DEC_DIVISION_BY_ZERO     = errors.New("decnum: Division by zero")
+	ERROR_DEC_OVERFLOW             = errors.New("decnum: Overflow")
+	ERROR_DEC_UNDERFLOW            = errors.New("decnum: Underflow")
+	ERROR_DEC_DIVISION_IMPOSSIBLE  = errors.New("decnum: Division impossible")
+	ERROR_DEC_DIVISION_UNDEFINED   = errors.New("decnum: Division undefined")
+	ERROR_DEC_CONVERSION_SYNTAX    = errors.New("decnum: Conversion syntax")
+	ERROR_DEC_INSUFFICIENT_STORAGE = errors.New("decnum: Insufficient storage")
+	ERROR_DEC_INVALID_CONTEXT      = errors.New("decnum: Invalid Context")
 )
 
 /************************************************************************/
@@ -51,16 +48,23 @@ var (
 /*                                                                      */
 /************************************************************************/
 
+var DecQuad_module_MACROS string // macros defined by the C decQuad module
+
 func init() {
 
 	C.mdq_init()
 
-	log.Printf("decQuad module: DECDPUN %d, DECSUBSET %d, DECEXTFLAG %d. Constants DECQUAD_Pmax %d, DECQUAD_String %d DECQUAD_Bytes %d.", C.DECDPUN, C.DECSUBSET, C.DECEXTFLAG, C.DECQUAD_Pmax, C.DECQUAD_String, C.DECQUAD_Bytes)
+	DecQuad_module_MACROS = fmt.Sprintf("decQuad module: DECDPUN %d, DECSUBSET %d, DECEXTFLAG %d. Constants DECQUAD_Pmax %d, DECQUAD_String %d DECQUAD_Bytes %d.", C.DECDPUN, C.DECSUBSET, C.DECEXTFLAG, C.DECQUAD_Pmax, C.DECQUAD_String, C.DECQUAD_Bytes)
 
 	if S_DECQUAD_Bytes != 16 { // S_DECQUAD_Bytes MUST NOT BE > 16, because Append_compressed_bytes() will silently fail if it is not the case
 		panic("S_DECQUAD_Bytes != 16")
 	}
 
+	assert(C.DECSUBSET == 0) // because else, we should define Flag_Lost_digits as status flag
+
+	// set global variable g_zero to 0
+
+	g_zero = zero_for_init()
 }
 
 /************************************************************************/
@@ -68,6 +72,12 @@ func init() {
 /*                          utility functions                           */
 /*                                                                      */
 /************************************************************************/
+
+func assert(val bool) {
+	if val == false {
+		panic("assertion failed")
+	}
+}
 
 // get_rsql_error_message_id converts C.xxx error code into rsql.ERROR_xxx error code.
 // All C.MDQ_ERROR_DEC_XXX errors come from the C decNumber library.
@@ -100,11 +110,204 @@ func get_error(mdqerr C.uint32_t) error {
 	panic("never get here")
 }
 
+type Round_mode_t int
+
+// Rounding mode is used if rounding is necessary during an operation.
+const (
+	ROUND_CEILING   Round_mode_t = C.DEC_ROUND_CEILING   // Round towards +Infinity.
+	ROUND_DOWN      Round_mode_t = C.DEC_ROUND_DOWN      // Round towards 0 (truncation).
+	ROUND_FLOOR     Round_mode_t = C.DEC_ROUND_FLOOR     // Round towards –Infinity.
+	ROUND_HALF_DOWN Round_mode_t = C.DEC_ROUND_HALF_DOWN // Round to nearest; if equidistant, round down.
+	ROUND_HALF_EVEN Round_mode_t = C.DEC_ROUND_HALF_EVEN // Round to nearest; if equidistant, round so that the final digit is even.
+	ROUND_HALF_UP   Round_mode_t = C.DEC_ROUND_HALF_UP   // Round to nearest; if equidistant, round up.
+	ROUND_UP        Round_mode_t = C.DEC_ROUND_UP        // Round away from 0.
+	ROUND_05UP      Round_mode_t = C.DEC_ROUND_05UP      // The same as DEC_ROUND_UP, except that rounding up only occurs if the digit to be rounded up is 0 or 5 and after Overflow the result is the same as for DEC_ROUND_DOWN.
+	ROUND_DEFAULT   Round_mode_t = ROUND_HALF_EVEN       // The same as DEC_ROUND_HALF_EVEN.
+)
+
+func (rounding Round_mode_t) String() string {
+
+	switch rounding {
+	case ROUND_CEILING:
+		return "ROUND_CEILING"
+	case ROUND_DOWN:
+		return "ROUND_DOWN"
+	case ROUND_FLOOR:
+		return "ROUND_FLOOR"
+	case ROUND_HALF_DOWN:
+		return "ROUND_HALF_DOWN"
+	case ROUND_HALF_EVEN:
+		return "ROUND_HALF_EVEN"
+	case ROUND_HALF_UP:
+		return "ROUND_HALF_UP"
+	case ROUND_UP:
+		return "ROUND_UP"
+	case ROUND_05UP:
+		return "ROUND_05UP"
+	default:
+		return "Unknown rounding mode"
+	}
+}
+
+type Status_t uint32
+
+const (
+	Flag_Conversion_syntax    Status_t = C.DEC_Conversion_syntax
+	Flag_Division_by_zero     Status_t = C.DEC_Division_by_zero
+	Flag_Division_impossible  Status_t = C.DEC_Division_impossible
+	Flag_Division_undefined   Status_t = C.DEC_Division_undefined
+	Flag_Insufficient_storage Status_t = C.DEC_Insufficient_storage
+	Flag_Inexact              Status_t = C.DEC_Inexact
+	Flag_Invalid_context      Status_t = C.DEC_Invalid_context
+	Flag_Invalid_operation    Status_t = C.DEC_Invalid_operation
+	//Flag_Lost_digits          Status_t = C.DEC_Lost_digits // exists only if DECSUBSET is set, which is not the case by default
+	Flag_Overflow  Status_t = C.DEC_Overflow
+	Flag_Clamped   Status_t = C.DEC_Clamped
+	Flag_Rounded   Status_t = C.DEC_Rounded
+	Flag_Subnormal Status_t = C.DEC_Subnormal
+	Flag_Underflow Status_t = C.DEC_Underflow // e.g. 1e-6000/1e1000
+)
+
+const ErrorMask Status_t = C.DEC_Errors // ErrorMask is a bitmask of many of the above flags, ORed together. After a series of operations, if status & decnum.Errors != 0, an error has occured, e.g. division by 0.
+
+// String representation of a single flag (status with one bit set).
+//
+func (flag Status_t) flag_string() string {
+
+	if flag == 0 {
+		return ""
+	}
+
+	switch flag {
+	case Flag_Conversion_syntax:
+		return "Conversion_syntax"
+	case Flag_Division_by_zero:
+		return "Division_by_zero"
+	case Flag_Division_impossible:
+		return "Division_impossible"
+	case Flag_Division_undefined:
+		return "Division_undefined"
+	case Flag_Insufficient_storage:
+		return "Insufficient_storage"
+	case Flag_Inexact:
+		return "Inexact"
+	case Flag_Invalid_context:
+		return "Invalid_context"
+	case Flag_Invalid_operation:
+		return "Invalid_operation"
+	//case Flag_Lost_digits:
+	//return "Lost_digits"
+	case Flag_Overflow:
+		return "Overflow"
+	case Flag_Clamped:
+		return "Clamped"
+	case Flag_Rounded:
+		return "Rounded"
+	case Flag_Subnormal:
+		return "Subnormal"
+	case Flag_Underflow:
+		return "Underflow"
+	default:
+		return "Unknown status flag"
+	}
+}
+
+// String representation of a status.
+// status can have many flags set.
+//
+func (status Status_t) String() string {
+	var (
+		s    string
+		flag Status_t
+	)
+
+	for i := Status_t(0); i < 32; i++ {
+		flag = Status_t(0x0001 << i)
+		if status&flag != 0 {
+			if s == "" {
+				s = flag.flag_string()
+			} else {
+				s += ";" + flag.flag_string()
+			}
+		}
+	}
+
+	return s
+}
+
+// Context contains the rounding mode, and a status field that records exceptional conditions, some of which are considered as error, e.g. division by 0, underlow for operations like 1e-6000/1e1000, overflow, etc.
+// For decQuad usage, only these two fields are used.
+//
+// When an error occurs during an operation, the result will probably be NaN or infinite, or a infinitesimal number if underflow.
+//
 type Context struct {
 	set C.decContext
 }
 
+type Context_kind_t uint32
 
+const (
+	DEFAULT_DECQUAD Context_kind_t = C.DEC_INIT_DECQUAD // default Context settings for decQuad operations
+)
+
+// Init is used to initialize a context with default value for rounding mode, and status field is cleared.
+//
+func (context *Context) Init(kind Context_kind_t) {
+
+	context.set = C.mdq_context_default(context.set, C.uint32_t(kind))
+}
+
+// Rounding returns the rounding mode of the context.
+//
+func (context *Context) Rounding() Round_mode_t {
+
+	return Round_mode_t(C.mdq_context_get_rounding(context.set))
+}
+
+// SetRounding sets the rounding mode of the context.
+//
+func (context *Context) SetRounding(rounding Round_mode_t) {
+
+	context.set = C.mdq_context_set_rounding(context.set, C.int(rounding))
+}
+
+// Status returns the status of the context.
+//
+// After a series of operations, the status contains the accumulated errors or informational flags that occurred during all the operations.
+// Beware: the status can contain informational flags, like Flag_Inexact, which is not an error.
+// To find the real errors, you must discard the non-error bits of the status as follows:
+//      ctx.Status() & decnum.Errors
+//
+//
+// It is easier to use the context.ErrorMask method to check for errors.
+//
+func (context *Context) Status() Status_t {
+
+	return Status_t(C.mdq_context_get_status(context.set))
+}
+
+// ResetStatus clears all bits of the status field of the context.
+// You can continue to use this context for a new series of operations.
+//
+func (context *Context) ResetStatus() {
+
+	context.set = C.mdq_context_zero_status(context.set)
+}
+
+// Error checks if status contains a flag that should be considered as an error.
+// In this case, the resut of the operations contains Nan or Infinite, or a infinitesimal number if Underflow-
+//
+func (context *Context) Error() error {
+	var status Status_t
+
+	status = context.Status()
+
+	if status&ErrorMask != 0 {
+		return fmt.Errorf("decnum error: %s", status.String())
+	}
+
+	return nil
+}
 
 /************************************************************************/
 /*                                                                      */
@@ -112,48 +315,470 @@ type Context struct {
 /*                                                                      */
 /************************************************************************/
 
-func (context *Context) Unary_minus(a MyQuad) (r MyQuad) {
-        var result C.Result_t
+var g_zero DecQuad // a constant DecQuad with value 0
 
-        result = C.mdq_unary_minus(a.val, context.set)
+// used only by init() to initialize the global variable g_zero.
+//
+func zero_for_init() (r DecQuad) {
+	var val C.decQuad
 
-	context.set = result.set
-	
-	return MyQuad{val: result.val}
+	val = C.mdq_zero()
+
+	return DecQuad{val: val}
 }
 
-func (context *Context) Add(a MyQuad, b MyQuad) (r MyQuad) {
-        var result C.Result_t
+// return a 0 DecQuad value.
+//
+func Zero() (r DecQuad) {
 
-        result = C.mdq_add(a.val, b.val, context.set)
+	return g_zero
+}
+
+// Minus returns -a.
+//
+func (context *Context) Minus(a DecQuad) (r DecQuad) {
+	var result C.Result_t
+
+	result = C.mdq_minus(a.val, context.set)
 
 	context.set = result.set
-	
-	return MyQuad{val: result.val}
+
+	return DecQuad{val: result.val}
+}
+
+// Add returns a + b.
+//
+func (context *Context) Add(a DecQuad, b DecQuad) (r DecQuad) {
+	var result C.Result_t
+
+	result = C.mdq_add(a.val, b.val, context.set)
+
+	context.set = result.set
+
+	return DecQuad{val: result.val}
+}
+
+// Subtract returns a - b.
+//
+func (context *Context) Subtract(a DecQuad, b DecQuad) (r DecQuad) {
+	var result C.Result_t
+
+	result = C.mdq_subtract(a.val, b.val, context.set)
+
+	context.set = result.set
+
+	return DecQuad{val: result.val}
+}
+
+// Multiply returns a * b.
+//
+func (context *Context) Multiply(a DecQuad, b DecQuad) (r DecQuad) {
+	var result C.Result_t
+
+	result = C.mdq_multiply(a.val, b.val, context.set)
+
+	context.set = result.set
+
+	return DecQuad{val: result.val}
+}
+
+// Divide returns a/b.
+//
+func (context *Context) Divide(a DecQuad, b DecQuad) (r DecQuad) {
+	var result C.Result_t
+
+	result = C.mdq_divide(a.val, b.val, context.set)
+
+	context.set = result.set
+
+	return DecQuad{val: result.val}
+}
+
+// DivideInteger returns the integral part of a/b.
+//
+func (context *Context) DivideInteger(a DecQuad, b DecQuad) (r DecQuad) {
+	var result C.Result_t
+
+	result = C.mdq_divide_integer(a.val, b.val, context.set)
+
+	context.set = result.set
+
+	return DecQuad{val: result.val}
+}
+
+// Remainder returns the modulo of a and b.
+//
+func (context *Context) Remainder(a DecQuad, b DecQuad) (r DecQuad) {
+	var result C.Result_t
+
+	result = C.mdq_remainder(a.val, b.val, context.set)
+
+	context.set = result.set
+
+	return DecQuad{val: result.val}
+}
+
+// Abs returns the absolute value of a.
+//
+func (context *Context) Abs(a DecQuad) (r DecQuad) {
+	var result C.Result_t
+
+	result = C.mdq_abs(a.val, context.set)
+
+	context.set = result.set
+
+	return DecQuad{val: result.val}
+}
+
+// ToIntegral returns the value of a rounded to an integral value.
+//
+func (context *Context) ToIntegral(a DecQuad, round Round_mode_t) (r DecQuad) {
+	var result C.Result_t
+
+	result = C.mdq_to_integral(a.val, context.set, C.int(round))
+
+	context.set = result.set
+
+	return DecQuad{val: result.val}
+}
+
+// Quantize rounds a to the same pattern as b.
+// b is just a model, its value is not used.
+// The result is the value of a, but with the same exponent as the pattern b.
+// The rounding of the context is used.
+//
+// You can use this function with the proper rounding to round (e.g. set context rounding mode to ROUND_HALF_EVEN) or truncate (ROUND_DOWN) 'a'.
+//
+// Examples:
+//    quantization of 134.6454 with    0.00001    is   134.64540
+//                    134.6454 with    0.00000    is   134.64540     the value of b has no importance
+//                    134.6454 with 1234.56789    is   134.64540     the value of b has no importance
+//                    134.6454 with 0.0001        is   134.6454
+//                    134.6454 with 0.01          is   134.65
+//                    134.6454 with 1             is   135
+//                    134.6454 with 1000000000    is   135           the value of b has no importance
+//                    134.6454 with 1E+2          is   1E+2
+//
+func (context *Context) Quantize(a DecQuad, b DecQuad) (r DecQuad) {
+	var result C.Result_t
+
+	result = C.mdq_quantize(a.val, b.val, context.set)
+
+	context.set = result.set
+
+	return DecQuad{val: result.val}
+}
+
+// Compare compares the value of a and b.
+//
+// If a <  b, returns -1.
+// If a == b, returns  0.
+// If a >  b, returns  1.
+// If a or b is Nan, returns Nan.
+//
+func (context *Context) Compare(a DecQuad, b DecQuad) (r DecQuad) {
+	var result C.Result_t
+
+	result = C.mdq_compare(a.val, b.val, context.set)
+
+	context.set = result.set
+
+	return DecQuad{val: result.val}
+}
+
+// IsFinite returns true if a is not Infinite, nor Nan.
+//
+func (context *Context) IsFinite(a DecQuad) bool {
+
+	if C.mdq_is_finite(a.val) != 0 {
+		return true
+	}
+
+	return false
+}
+
+// IsInteger returns true if a is finite and has exponent=0.
+//
+func (context *Context) IsInteger(a DecQuad) bool {
+
+	if C.mdq_is_integer(a.val) != 0 {
+		return true
+	}
+
+	return false
+}
+
+// IsInfinite returns true if a is Infinite.
+//
+func (context *Context) IsInfinite(a DecQuad) bool {
+
+	if C.mdq_is_infinite(a.val) != 0 {
+		return true
+	}
+
+	return false
+}
+
+// IsNan returns true if a is Nan.
+//
+func (context *Context) IsNan(a DecQuad) bool {
+
+	if C.mdq_is_nan(a.val) != 0 {
+		return true
+	}
+
+	return false
+}
+
+// IsNegative returns true if a is Nan.
+//
+func (context *Context) IsNegative(a DecQuad) bool {
+
+	if C.mdq_is_negative(a.val) != 0 {
+		return true
+	}
+
+	return false
+}
+
+// IsZero returns true if a == 0.
+//
+func (context *Context) IsZero(a DecQuad) bool {
+
+	if C.mdq_is_zero(a.val) != 0 {
+		return true
+	}
+
+	return false
+}
+
+// Max returns the larger of a and b.
+// If either a or b is NaN then the other argument is the result.
+//
+func (context *Context) Max(a DecQuad, b DecQuad) (r DecQuad) {
+	var result C.Result_t
+
+	result = C.mdq_max(a.val, b.val, context.set)
+
+	context.set = result.set
+
+	return DecQuad{val: result.val}
+}
+
+// Min returns the smaller of a and b.
+// If either a or b is NaN then the other argument is the result.
+//
+func (context *Context) Min(a DecQuad, b DecQuad) (r DecQuad) {
+	var result C.Result_t
+
+	result = C.mdq_min(a.val, b.val, context.set)
+
+	context.set = result.set
+
+	return DecQuad{val: result.val}
 }
 
 /************************************************************************/
 /*                                                                      */
-/*                      conversion operations                           */
+/*                      conversion to string                            */
 /*                                                                      */
 /************************************************************************/
 
-func (context *Context) From_int32(value int32) (r MyQuad) {
+// byteslice_into_C creates a byteslice, with p (pointer into C heap) as underlying array.
+// length is string length, not capacity.
+//
+func byteslice_into_C(p *C.char, length C.size_t) []byte {
+	var (
+		bs_into_c []byte
+	)
 
-        C.decQuadFromInt32(&r.val, C.int32_t(value))
+	bs_into_c = (*[0x7fffffff]byte)(unsafe.Pointer(p))[:length]
+
+	return bs_into_c
+}
+
+// AppendQuad appends string representation of decQuad into byte slice.
+// This representation is the BEST TO DISPLAY decQuad, because it shows all numbers having exponent between 0 and -34 (DECQUAD_Pmax), that is, all 34 significant digits, without using exponent notation.
+//
+// All digits of the coefficient are displayed, e.g. 12344567890.123456789000000000000000
+// If the number must have an exponent because it is too large or too small, we can have    1.4E+201     0E-6176    Infinity
+//
+func AppendQuad(dst []byte, a *DecQuad) []byte {
+	var (
+		ret_str   C.Ret_str
+		str_slice []byte
+
+		ret               C.Ret_BCD
+		d                 byte
+		skip_leading_zero bool = true
+		mdqerr            C.uint32_t
+		exp               int32
+		sign              uint32
+		BCD_slice         []byte
+
+		buff [S_DECQUAD_String]byte // array size is max of DECQUAD_String and DECQUAD_Pmax. DECQUAD_String is larger.
+	)
+
+	// fill BCD array
+
+	ret = C.mdq_to_mallocated_BCD(a.val) // sign will be 1 for negative and non-zero number, else, 0. If Inf or Nan, returns an error.
+	BCD_slice = byteslice_into_C(ret.BCD, ret.capacity)
+	exp = int32(ret.exp)
+	sign = uint32(ret.sign)
+	mdqerr = ret.mdqerr
+
+	if exp > 0 || exp < -S_DECQUAD_Pmax || mdqerr != 0 { // if decQuad value is not in NUMERIC range, or Inf or Nan, we want our function to output the number, or Infinity, or NaN.
+		ret_str = C.mdq_to_mallocated_QuadToString(a.val) // may use exponent notation
+		str_slice = byteslice_into_C(ret_str.s, ret_str.length)
+
+		dst = append(dst, str_slice...) // write buff into destination and return
+		C.free(unsafe.Pointer(ret_str.s))
+		C.free(unsafe.Pointer(ret.BCD))
+		return dst
+	}
+
+	// write string. Here, the number is not Inf nor Nan.
+
+	i := 0
+
+	integral_part_length := len(BCD_slice) + int(exp) // here, exp is negative
+
+	BCD_integral_part := BCD_slice[:integral_part_length]
+	BCD_fractional_part := BCD_slice[integral_part_length:]
+
+	for _, d = range BCD_integral_part { // ==== write integral part ====
+		if skip_leading_zero && d == 0 {
+			continue
+		} else {
+			skip_leading_zero = false
+		}
+		buff[i] = '0' + d
+		i++
+	}
+
+	if i == 0 { // write '0' if integral part is 0
+		buff[i] = '0'
+		i++
+	}
+
+	if sign != 0 {
+		dst = append(dst, '-') // write '-' sign if any into destination
+	}
+
+	dst = append(dst, buff[:i]...) // write integral part into destination
+
+	if exp == 0 { // if no fractional part, just return
+		C.free(unsafe.Pointer(ret.BCD))
+		return dst
+	}
+
+	dst = append(dst, '.') // ==== write fractional part ====
+
+	i = 0
+	for _, d = range BCD_fractional_part {
+		buff[i] = '0' + d
+		i++
+	}
+
+	dst = append(dst, buff[:i]...) // write fractional part into destination
+
+	C.free(unsafe.Pointer(ret.BCD))
+	return dst
+}
+
+// String is the preferred way to display a decQuad number.
+//
+func (a DecQuad) String() string {
+	var buffer [S_DECQUAD_String]byte // to avoid reallocation, this capacity is needed to receive result of C.mdq_to_mallocated_QuadToString(), and also big enough to receive [sign] + [DECQUAD_Pmax digits] + [fractional dot]
+
+	ss := AppendQuad(buffer[:0], &a)
+
+	return string(ss)
+}
+
+/************************************************************************/
+/*                                                                      */
+/*                      conversion to number                            */
+/*                                                                      */
+/************************************************************************/
+
+// ToInt32 returns the int32 value from a.
+// The rounding passed as argument is used, instead of the rounding mode of context which is ignored.
+//
+func (context *Context) ToInt32(a DecQuad, round Round_mode_t) int32 {
+	var result C.Ret_int32_t
+
+	result = C.mdq_to_int32(a.val, context.set, C.int(round))
+
+	context.set = result.set
+
+	return int32(result.val)
+}
+
+// ToInt64 returns the int64 value from a.
+// The rounding passed as argument is used, instead of the rounding mode of context which is ignored.
+//
+func (context *Context) ToInt64(a DecQuad, round Round_mode_t) int64 {
+	var result C.Ret_int64_t
+
+	result = C.mdq_to_int64(a.val, context.set, C.int(round))
+
+	context.set = result.set
+
+	return int64(result.val)
+}
+
+/************************************************************************/
+/*                                                                      */
+/*                   conversion from string and numbers                 */
+/*                                                                      */
+/************************************************************************/
+
+const MAX_STRING_SIZE = C.MAX_STRING_SIZE
+
+// FromString returns a DecQuad from a string.
+//
+func (context *Context) FromString(s string) (r DecQuad, err error) {
+	var (
+		i        int
+		strarray C.Strarray_t
+		result   C.Result_t
+	)
+
+	if len(s) > MAX_STRING_SIZE {
+		return r, errors.New("decnum error: string too long")
+	}
+
+	for i = 0; i < len(s); i++ {
+		strarray.arr[i] = C.char(s[i])
+	}
+
+	strarray.arr[i] = 0 // terminating 0
+
+	result = C.mdq_from_string(strarray, context.set)
+
+	context.set = result.set
+
+	return DecQuad{val: result.val}, nil
+}
+
+// FromInt32 returns a DecQuad from a int32 value.
+//
+func (context *Context) FromInt32(value int32) (r DecQuad) {
+
+	C.decQuadFromInt32(&r.val, C.int32_t(value))
 
 	return r
 }
 
-func (context *Context) From_int64(value int64) (r MyQuad) {
-        var result C.Result_t
+// FromInt64 returns a DecQuad from a int64 value.
+//
+func (context *Context) FromInt64(value int64) (r DecQuad) {
+	var result C.Result_t
 
-        result = C.mdq_from_int64(C.int64_t(value), context.set)
+	result = C.mdq_from_int64(C.int64_t(value), context.set)
 
 	context.set = result.set
-	
-	return MyQuad{val: result.val}
+
+	return DecQuad{val: result.val}
 }
-
-
-

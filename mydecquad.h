@@ -57,28 +57,7 @@ typedef struct Ret_str {
   size_t     length;
 } Ret_str;
 
-typedef struct Ret_BCD {
-  uint32_t   mdqerr;
-  char      *BCD;
-  size_t     capacity;
-  int32_t    exp;
-  uint32_t   sign;
-} Ret_BCD;
 
-typedef struct Ret_int32 {
-  uint32_t   mdqerr;
-  int32_t    val;
-} Ret_int32;
-
-typedef struct Ret_int64 {
-  uint32_t   mdqerr;
-  int64_t    val;
-} Ret_int64;
-
-typedef struct Ret_double {
-  uint32_t   mdqerr;
-  double     val;
-} Ret_double;
 
 
 //-------
@@ -86,17 +65,8 @@ typedef struct Ret_double {
 
 void mdq_init(void);
 
-uint32_t        mdq_hash(decQuad a);
 
-Ret_decQuad     mdq_subtract(uint16_t precision, uint16_t scale, decQuad a, decQuad b);
-Ret_decQuad     mdq_multiply(uint16_t precision, uint16_t scale, decQuad a, decQuad b);
-Ret_decQuad     mdq_divide(uint16_t precision, uint16_t scale, decQuad a, decQuad b);
-int32_t         mdq_compare(decQuad a, decQuad b);
-int32_t         mdq_check_equality_FOR_TEST(decQuad a, decQuad b);
-
-decQuad         mdq_zero(uint16_t precision, uint16_t scale);
 Ret_decQuad     mdq_copy(uint16_t precision, uint16_t scale, decQuad a);
-Ret_decQuad     mdq_abs(uint16_t precision, uint16_t scale, decQuad a);
 Ret_decQuad     mdq_ceiling(uint16_t precision, uint16_t scale, decQuad a);
 Ret_decQuad     mdq_floor(uint16_t precision, uint16_t scale, decQuad a);
 Ret_decQuad     mdq_sign(uint16_t precision, uint16_t scale, decQuad a);
@@ -111,17 +81,14 @@ Ret_decQuad     mdq_from_bytes_raw_and_free(char *s);
 Ret_decQuad     mdq_from_bytes_and_free(uint16_t precision, uint16_t scale, char *s);
 Ret_decQuad_p_s mdq_from_bytes_with_implied_p_s_and_free(char *s);
 
-Ret_str         mdq_to_mallocated_QuadToString(decQuad a);
-Ret_BCD         mdq_to_mallocated_BCD(decQuad a);
-Ret_str         mdq_to_mallocated_string_raw(decQuad a);
 void            mdq_print_string_raw(const char *format, decQuad a);
-
-Ret_int32       mdq_to_int32_truncate(decQuad a);
-Ret_int32       mdq_to_int32_round(decQuad a);
-Ret_int64       mdq_to_int64_truncate(decQuad a);
-Ret_int64       mdq_to_int64_round(decQuad a);
-Ret_double      mdq_to_double(decQuad a);
-
+/*
+Ret_int32_t       mdq_to_int32_truncate(decQuad a);
+Ret_int32_t       mdq_to_int32_round(decQuad a);
+Ret_int64_t       mdq_to_int64_truncate(decQuad a);
+Ret_int64_t       mdq_to_int64_round(decQuad a);
+Ret_double_t      mdq_to_double(decQuad a);
+*/
 decQuad         mdq_decQuadZero(decQuad a);
 uint32_t        mdq_decQuadIsZero(decQuad a);
 uint32_t        mdq_decQuadIsNegative(decQuad a);
@@ -129,15 +96,89 @@ uint32_t        mdq_decQuadIsNegative(decQuad a);
 
 
 
+#define MAX_STRING_SIZE  50
 
-
+// struct used to retrieve both a decQuad result and a decContext, from an operation.
+// This way, the result of an operation (value and context) are returned to the caller as value.
+// No need to fuss with pointers.
+//
 typedef struct Result_t {
   decContext  set;
   decQuad     val;
 } Result_t;
 
-Result_t mdq_unary_minus(decQuad a, decContext set);
-Result_t mdq_add(decQuad a, decQuad b, decContext set);
+// struct used to pass strings from Go to C and vice-versa.
+// This way, strings are just passed as value, no need to fuss with pointers.
+//
+typedef struct Strarray_t {
+  char arr[MAX_STRING_SIZE];
+} Strarray_t;
+
+typedef struct Ret_BCD {
+  uint32_t   mdqerr; // TODO
+  char      *BCD;
+  size_t     capacity;
+  int32_t    exp;
+  uint32_t   sign;
+} Ret_BCD;
+
+typedef struct Ret_int32_t {
+  decContext  set;
+  int32_t    val;
+} Ret_int32_t;
+
+typedef struct Ret_int64_t {
+  decContext  set;
+  int64_t    val;
+} Ret_int64_t;
+
+typedef struct Ret_double_t {
+  decContext  set;
+  double     val;
+} Ret_double_t;
+
+
+decContext mdq_context_default(decContext set, uint32_t kind);
+int        mdq_context_get_rounding(decContext set);
+decContext mdq_context_set_rounding(decContext set, int rounding);
+uint32_t   mdq_context_get_status(decContext set);
+decContext mdq_context_zero_status(decContext set);
+
+decQuad     mdq_zero();
+Result_t    mdq_minus(decQuad a, decContext set);
+Result_t    mdq_add(decQuad a, decQuad b, decContext set);
+Result_t    mdq_subtract(decQuad a, decQuad b, decContext set);
+Result_t    mdq_multiply(decQuad a, decQuad b, decContext set);
+Result_t    mdq_divide(decQuad a, decQuad b, decContext set);
+Result_t    mdq_divide_integer(decQuad a, decQuad b, decContext set);
+Result_t    mdq_remainder(decQuad a, decQuad b, decContext set);
+Result_t    mdq_abs(decQuad a, decContext set);
+Result_t    mdq_to_integral(decQuad a, decContext set, int round);
+Result_t    mdq_quantize(decQuad a, decQuad b, decContext set);
+Result_t    mdq_compare(decQuad a, decQuad b, decContext set);
+uint32_t    mdq_is_finite(decQuad a);
+uint32_t    mdq_is_integer(decQuad a);
+uint32_t    mdq_is_infinite(decQuad a);
+uint32_t    mdq_is_nan(decQuad a);
+uint32_t    mdq_is_negative(decQuad a);
+uint32_t    mdq_is_positive(decQuad a);
+uint32_t    mdq_is_zero(decQuad a);
+Result_t    mdq_max(decQuad a, decQuad b, decContext set);
+Result_t    mdq_min(decQuad a, decQuad b, decContext set);
+
+Ret_int32_t mdq_to_int32(decQuad a, decContext set, int round);
+Ret_int64_t mdq_to_int64(decQuad a, decContext set, int round);
+
+Ret_str  mdq_to_mallocated_QuadToString(decQuad a);
+Ret_BCD  mdq_to_mallocated_BCD(decQuad a);
+Result_t mdq_from_string(Strarray_t strarray, decContext set);
+
+
+
+
+
+
+
 
 Result_t mdq_from_int64(int64_t value, decContext set);
 
