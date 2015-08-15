@@ -594,6 +594,9 @@ func (context *Context) Min(a DecQuad, b DecQuad) (r DecQuad) {
 //
 // All digits of the coefficient are displayed, e.g. 12344567890.123456789000000000000000
 // If the number must have an exponent because it is too large or too small, we can have    1.4E+201     0E-6176    Infinity
+// If the number has an internal positive exponent, like 33e4, it will be displayed as 3.3E+5, though. But 33.1234e4 is displayed as 331234.
+//
+// Method String() calls AppendQuad internally.
 //
 func AppendQuad(dst []byte, a *DecQuad) []byte {
 	var (
