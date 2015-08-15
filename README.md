@@ -38,6 +38,9 @@ They are quite easy to read, and the pattern for calling C function is always th
 Parameters are always passed from Go to C as value, and in the other direction too.
 Strings are passed as array in struct, so they are passed by value too.
 
+__Installation__:
+go get github.com/rin01/decnum
+
 
 ### Godoc
 https://godoc.org/github.com/rin01/decnum
