@@ -5,6 +5,7 @@
 /*                                xmalloc                               */
 /************************************************************************/
 
+
 inline static void *xmalloc (size_t size) {
   void *p;
 
@@ -93,9 +94,9 @@ decQuad mdq_zero() {
 
 /* unary minus.
 */
-Result_t mdq_minus(decQuad a, decContext set) {
+Ret_decQuad_t mdq_minus(decQuad a, decContext set) {
 
-  Result_t     res;
+  Ret_decQuad_t     res;
 
   /* operation */
 
@@ -108,9 +109,9 @@ Result_t mdq_minus(decQuad a, decContext set) {
 
 /* addition.
 */
-Result_t mdq_add(decQuad a, decQuad b, decContext set) {
+Ret_decQuad_t mdq_add(decQuad a, decQuad b, decContext set) {
 
-  Result_t     res;
+  Ret_decQuad_t     res;
 
   /* operation */
 
@@ -123,9 +124,9 @@ Result_t mdq_add(decQuad a, decQuad b, decContext set) {
 
 /* subtraction.
 */
-Result_t mdq_subtract(decQuad a, decQuad b, decContext set) {
+Ret_decQuad_t mdq_subtract(decQuad a, decQuad b, decContext set) {
 
-  Result_t     res;
+  Ret_decQuad_t     res;
 
   /* operation */
 
@@ -138,9 +139,9 @@ Result_t mdq_subtract(decQuad a, decQuad b, decContext set) {
 
 /* multiplication.
 */
-Result_t mdq_multiply(decQuad a, decQuad b, decContext set) {
+Ret_decQuad_t mdq_multiply(decQuad a, decQuad b, decContext set) {
 
-  Result_t     res;
+  Ret_decQuad_t     res;
 
   /* operation */
 
@@ -153,9 +154,9 @@ Result_t mdq_multiply(decQuad a, decQuad b, decContext set) {
 
 /* division.
 */
-Result_t mdq_divide(decQuad a, decQuad b, decContext set) {
+Ret_decQuad_t mdq_divide(decQuad a, decQuad b, decContext set) {
 
-  Result_t     res;
+  Ret_decQuad_t     res;
 
   /* operation */
 
@@ -168,9 +169,9 @@ Result_t mdq_divide(decQuad a, decQuad b, decContext set) {
 
 /* integer division.
 */
-Result_t mdq_divide_integer(decQuad a, decQuad b, decContext set) {
+Ret_decQuad_t mdq_divide_integer(decQuad a, decQuad b, decContext set) {
 
-  Result_t     res;
+  Ret_decQuad_t     res;
 
   /* operation */
 
@@ -183,9 +184,9 @@ Result_t mdq_divide_integer(decQuad a, decQuad b, decContext set) {
 
 /* modulo.
 */
-Result_t mdq_remainder(decQuad a, decQuad b, decContext set) {
+Ret_decQuad_t mdq_remainder(decQuad a, decQuad b, decContext set) {
 
-  Result_t     res;
+  Ret_decQuad_t     res;
 
   /* operation */
 
@@ -198,9 +199,9 @@ Result_t mdq_remainder(decQuad a, decQuad b, decContext set) {
 
 /* absolute value.
 */
-Result_t mdq_abs(decQuad a, decContext set) {
+Ret_decQuad_t mdq_abs(decQuad a, decContext set) {
 
-  Result_t     res;
+  Ret_decQuad_t     res;
 
   /* operation */
 
@@ -213,9 +214,9 @@ Result_t mdq_abs(decQuad a, decContext set) {
 
 /* to integral.
 */
-Result_t mdq_to_integral(decQuad a, decContext set, int round) {
+Ret_decQuad_t mdq_to_integral(decQuad a, decContext set, int round) {
 
-  Result_t     res;
+  Ret_decQuad_t     res;
 
   /* operation */
 
@@ -228,9 +229,9 @@ Result_t mdq_to_integral(decQuad a, decContext set, int round) {
 
 /* quantize.
 */
-Result_t mdq_quantize(decQuad a, decQuad b, decContext set) {
+Ret_decQuad_t mdq_quantize(decQuad a, decQuad b, decContext set) {
 
-  Result_t     res;
+  Ret_decQuad_t     res;
 
   /* operation */
 
@@ -243,9 +244,9 @@ Result_t mdq_quantize(decQuad a, decQuad b, decContext set) {
 
 /* compare.
 */
-Result_t mdq_compare(decQuad a, decQuad b, decContext set) {
+Ret_decQuad_t mdq_compare(decQuad a, decQuad b, decContext set) {
 
-  Result_t     res;
+  Ret_decQuad_t     res;
 
   /* operation */
 
@@ -314,9 +315,9 @@ uint32_t mdq_is_zero(decQuad a) {
 
 /* max.
 */
-Result_t mdq_max(decQuad a, decQuad b, decContext set) {
+Ret_decQuad_t mdq_max(decQuad a, decQuad b, decContext set) {
 
-  Result_t     res;
+  Ret_decQuad_t     res;
 
   /* operation */
 
@@ -329,9 +330,9 @@ Result_t mdq_max(decQuad a, decQuad b, decContext set) {
 
 /* min.
 */
-Result_t mdq_min(decQuad a, decQuad b, decContext set) {
+Ret_decQuad_t mdq_min(decQuad a, decQuad b, decContext set) {
 
-  Result_t     res;
+  Ret_decQuad_t     res;
 
   /* operation */
 
@@ -387,7 +388,7 @@ Ret_BCD mdq_to_mallocated_BCD(decQuad a) {
 
   int32_t     exp;
   uint32_t    sign;
-  Ret_BCD     ret = {.mdqerr = 0, .BCD = NULL, .capacity = 0, .exp = 0, .sign = 0};
+  Ret_BCD     ret = {.inf_nan = 0, .BCD = NULL, .capacity = 0, .exp = 0, .sign = 0};
 
   ret.BCD = (char *)xmalloc(DECQUAD_Pmax);
 
@@ -402,9 +403,9 @@ Ret_BCD mdq_to_mallocated_BCD(decQuad a) {
 
   if ( ! decQuadIsFinite(&a) ) {
       if ( decQuadIsInfinite(&a) ) {
-          ret.mdqerr = MDQ_ERROR_INFINITE;
+          ret.inf_nan = MDQ_INFINITE;
       } else {
-          ret.mdqerr = MDQ_ERROR_NAN;
+          ret.inf_nan = MDQ_NAN;
       }
       return ret;
   }
@@ -471,10 +472,10 @@ Ret_int64_t mdq_to_int64(decQuad a, decContext set, int round) {
     return ret;
   }
 
-//  assert(decQuadGetExponent(&a_integral) == 0);
+  assert(decQuadGetExponent(&a_integral_quantized) == 0);
 
   decQuadToString(&a_integral_quantized, a_str);  // never raises error. Exponential notation never occurs for integral, which allows strtoll() to parse the number.
-printf("xxxxxxxxxxxxxx  %s\n", a_str);
+  //printf("xxxxxxxxxxxxxx  %s\n", a_str);
 
   errno = 0;
   r_val = strtoll(a_str, &tailptr, 10);  // changes errno if error
@@ -506,9 +507,9 @@ printf("xxxxxxxxxxxxxx  %s\n", a_str);
 
 /* conversion from string.
 */
-Result_t mdq_from_string(Strarray_t strarray, decContext set) {
+Ret_decQuad_t mdq_from_string(Strarray_t strarray, decContext set) {
 
-  Result_t     res;
+  Ret_decQuad_t     res;
 
   /* operation */
 
@@ -521,10 +522,10 @@ Result_t mdq_from_string(Strarray_t strarray, decContext set) {
 
 /* conversion from int64.
 */
-Result_t mdq_from_int64(int64_t value, decContext set) {
+Ret_decQuad_t mdq_from_int64(int64_t value, decContext set) {
 
   char         buff[30]; // more than enough to store a int64
-  Result_t     res;
+  Ret_decQuad_t     res;
 
   /* write value into buffer */
 

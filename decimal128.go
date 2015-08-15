@@ -24,9 +24,9 @@ type DecQuad struct {
 }
 
 const (
-	S_DECQUAD_Pmax        = C.DECQUAD_Pmax          // number of digits in coefficient
-	S_DECQUAD_Bytes       = C.DECQUAD_Bytes         // size in bytes of decQuad
-	S_DECQUAD_String      = C.DECQUAD_String        // buffer capacity for C.decQuadToString()
+	DECQUAD_Pmax        = C.DECQUAD_Pmax          // number of digits in coefficient
+	DECQUAD_Bytes       = C.DECQUAD_Bytes         // size in bytes of decQuad
+	DECQUAD_String      = C.DECQUAD_String        // buffer capacity for C.decQuadToString()
 )
 
 var (
@@ -56,8 +56,8 @@ func init() {
 
 	DecQuad_module_MACROS = fmt.Sprintf("decQuad module: DECDPUN %d, DECSUBSET %d, DECEXTFLAG %d. Constants DECQUAD_Pmax %d, DECQUAD_String %d DECQUAD_Bytes %d.", C.DECDPUN, C.DECSUBSET, C.DECEXTFLAG, C.DECQUAD_Pmax, C.DECQUAD_String, C.DECQUAD_Bytes)
 
-	if S_DECQUAD_Bytes != 16 { // S_DECQUAD_Bytes MUST NOT BE > 16, because Append_compressed_bytes() will silently fail if it is not the case
-		panic("S_DECQUAD_Bytes != 16")
+	if DECQUAD_Bytes != 16 { // DECQUAD_Bytes MUST NOT BE > 16, because Append_compressed_bytes() will silently fail if it is not the case
+		panic("DECQUAD_Bytes != 16")
 	}
 
 	assert(C.DECSUBSET == 0) // because else, we should define Flag_Lost_digits as status flag
@@ -79,36 +79,7 @@ func assert(val bool) {
 	}
 }
 
-// get_rsql_error_message_id converts C.xxx error code into rsql.ERROR_xxx error code.
-// All C.MDQ_ERROR_DEC_XXX errors come from the C decNumber library.
-//
-func get_error(mdqerr C.uint32_t) error {
 
-	switch mdqerr {
-	case C.MDQ_ERROR_DEC_UNLISTED:
-		return ERROR_DEC_UNLISTED
-	case C.MDQ_ERROR_DEC_INVALID_OPERATION:
-		return ERROR_DEC_INVALID_OPERATION
-	case C.MDQ_ERROR_DEC_DIVISION_BY_ZERO:
-		return ERROR_DEC_DIVISION_BY_ZERO
-	case C.MDQ_ERROR_DEC_OVERFLOW:
-		return ERROR_DEC_OVERFLOW
-	case C.MDQ_ERROR_DEC_UNDERFLOW:
-		return ERROR_DEC_UNDERFLOW
-	case C.MDQ_ERROR_DEC_DIVISION_IMPOSSIBLE:
-		return ERROR_DEC_DIVISION_IMPOSSIBLE
-	case C.MDQ_ERROR_DEC_DIVISION_UNDEFINED:
-		return ERROR_DEC_DIVISION_UNDEFINED
-	case C.MDQ_ERROR_DEC_CONVERSION_SYNTAX:
-		return ERROR_DEC_CONVERSION_SYNTAX
-	case C.MDQ_ERROR_DEC_INSUFFICIENT_STORAGE:
-		return ERROR_DEC_INSUFFICIENT_STORAGE
-	case C.MDQ_ERROR_DEC_INVALID_CONTEXT:
-		return ERROR_DEC_INVALID_CONTEXT
-	}
-
-	panic("never get here")
-}
 
 type Round_mode_t int
 
@@ -337,7 +308,7 @@ func Zero() (r DecQuad) {
 // Minus returns -a.
 //
 func (context *Context) Minus(a DecQuad) (r DecQuad) {
-	var result C.Result_t
+	var result C.Ret_decQuad_t
 
 	result = C.mdq_minus(a.val, context.set)
 
@@ -349,7 +320,7 @@ func (context *Context) Minus(a DecQuad) (r DecQuad) {
 // Add returns a + b.
 //
 func (context *Context) Add(a DecQuad, b DecQuad) (r DecQuad) {
-	var result C.Result_t
+	var result C.Ret_decQuad_t
 
 	result = C.mdq_add(a.val, b.val, context.set)
 
@@ -361,7 +332,7 @@ func (context *Context) Add(a DecQuad, b DecQuad) (r DecQuad) {
 // Subtract returns a - b.
 //
 func (context *Context) Subtract(a DecQuad, b DecQuad) (r DecQuad) {
-	var result C.Result_t
+	var result C.Ret_decQuad_t
 
 	result = C.mdq_subtract(a.val, b.val, context.set)
 
@@ -373,7 +344,7 @@ func (context *Context) Subtract(a DecQuad, b DecQuad) (r DecQuad) {
 // Multiply returns a * b.
 //
 func (context *Context) Multiply(a DecQuad, b DecQuad) (r DecQuad) {
-	var result C.Result_t
+	var result C.Ret_decQuad_t
 
 	result = C.mdq_multiply(a.val, b.val, context.set)
 
@@ -385,7 +356,7 @@ func (context *Context) Multiply(a DecQuad, b DecQuad) (r DecQuad) {
 // Divide returns a/b.
 //
 func (context *Context) Divide(a DecQuad, b DecQuad) (r DecQuad) {
-	var result C.Result_t
+	var result C.Ret_decQuad_t
 
 	result = C.mdq_divide(a.val, b.val, context.set)
 
@@ -397,7 +368,7 @@ func (context *Context) Divide(a DecQuad, b DecQuad) (r DecQuad) {
 // DivideInteger returns the integral part of a/b.
 //
 func (context *Context) DivideInteger(a DecQuad, b DecQuad) (r DecQuad) {
-	var result C.Result_t
+	var result C.Ret_decQuad_t
 
 	result = C.mdq_divide_integer(a.val, b.val, context.set)
 
@@ -409,7 +380,7 @@ func (context *Context) DivideInteger(a DecQuad, b DecQuad) (r DecQuad) {
 // Remainder returns the modulo of a and b.
 //
 func (context *Context) Remainder(a DecQuad, b DecQuad) (r DecQuad) {
-	var result C.Result_t
+	var result C.Ret_decQuad_t
 
 	result = C.mdq_remainder(a.val, b.val, context.set)
 
@@ -421,7 +392,7 @@ func (context *Context) Remainder(a DecQuad, b DecQuad) (r DecQuad) {
 // Abs returns the absolute value of a.
 //
 func (context *Context) Abs(a DecQuad) (r DecQuad) {
-	var result C.Result_t
+	var result C.Ret_decQuad_t
 
 	result = C.mdq_abs(a.val, context.set)
 
@@ -433,7 +404,7 @@ func (context *Context) Abs(a DecQuad) (r DecQuad) {
 // ToIntegral returns the value of a rounded to an integral value.
 //
 func (context *Context) ToIntegral(a DecQuad, round Round_mode_t) (r DecQuad) {
-	var result C.Result_t
+	var result C.Ret_decQuad_t
 
 	result = C.mdq_to_integral(a.val, context.set, C.int(round))
 
@@ -460,7 +431,7 @@ func (context *Context) ToIntegral(a DecQuad, round Round_mode_t) (r DecQuad) {
 //                    134.6454 with 1E+2          is   1E+2
 //
 func (context *Context) Quantize(a DecQuad, b DecQuad) (r DecQuad) {
-	var result C.Result_t
+	var result C.Ret_decQuad_t
 
 	result = C.mdq_quantize(a.val, b.val, context.set)
 
@@ -477,7 +448,7 @@ func (context *Context) Quantize(a DecQuad, b DecQuad) (r DecQuad) {
 // If a or b is Nan, returns Nan.
 //
 func (context *Context) Compare(a DecQuad, b DecQuad) (r DecQuad) {
-	var result C.Result_t
+	var result C.Ret_decQuad_t
 
 	result = C.mdq_compare(a.val, b.val, context.set)
 
@@ -556,7 +527,7 @@ func (context *Context) IsZero(a DecQuad) bool {
 // If either a or b is NaN then the other argument is the result.
 //
 func (context *Context) Max(a DecQuad, b DecQuad) (r DecQuad) {
-	var result C.Result_t
+	var result C.Ret_decQuad_t
 
 	result = C.mdq_max(a.val, b.val, context.set)
 
@@ -569,7 +540,7 @@ func (context *Context) Max(a DecQuad, b DecQuad) (r DecQuad) {
 // If either a or b is NaN then the other argument is the result.
 //
 func (context *Context) Min(a DecQuad, b DecQuad) (r DecQuad) {
-	var result C.Result_t
+	var result C.Ret_decQuad_t
 
 	result = C.mdq_min(a.val, b.val, context.set)
 
@@ -611,12 +582,12 @@ func AppendQuad(dst []byte, a *DecQuad) []byte {
 		ret               C.Ret_BCD
 		d                 byte
 		skip_leading_zero bool = true
-		mdqerr            C.uint32_t
+		inf_nan            C.uint32_t
 		exp               int32
 		sign              uint32
 		BCD_slice         []byte
 
-		buff [S_DECQUAD_String]byte // array size is max of DECQUAD_String and DECQUAD_Pmax. DECQUAD_String is larger.
+		buff [DECQUAD_String]byte // array size is max of DECQUAD_String and DECQUAD_Pmax. DECQUAD_String is larger.
 	)
 
 	// fill BCD array
@@ -625,9 +596,9 @@ func AppendQuad(dst []byte, a *DecQuad) []byte {
 	BCD_slice = byteslice_into_C(ret.BCD, ret.capacity)
 	exp = int32(ret.exp)
 	sign = uint32(ret.sign)
-	mdqerr = ret.mdqerr
+	inf_nan = ret.inf_nan
 
-	if exp > 0 || exp < -S_DECQUAD_Pmax || mdqerr != 0 { // if decQuad value is not in NUMERIC range, or Inf or Nan, we want our function to output the number, or Infinity, or NaN.
+	if exp > 0 || exp < -DECQUAD_Pmax || inf_nan != 0 { // if decQuad value is not in NUMERIC range, or Inf or Nan, we want our function to output the number, or Infinity, or NaN.
 		ret_str = C.mdq_to_mallocated_QuadToString(a.val) // may use exponent notation
 		str_slice = byteslice_into_C(ret_str.s, ret_str.length)
 
@@ -689,7 +660,7 @@ func AppendQuad(dst []byte, a *DecQuad) []byte {
 // String is the preferred way to display a decQuad number.
 //
 func (a DecQuad) String() string {
-	var buffer [S_DECQUAD_String]byte // to avoid reallocation, this capacity is needed to receive result of C.mdq_to_mallocated_QuadToString(), and also big enough to receive [sign] + [DECQUAD_Pmax digits] + [fractional dot]
+	var buffer [DECQUAD_String]byte // to avoid reallocation, this capacity is needed to receive result of C.mdq_to_mallocated_QuadToString(), and also big enough to receive [sign] + [DECQUAD_Pmax digits] + [fractional dot]
 
 	ss := AppendQuad(buffer[:0], &a)
 
@@ -742,7 +713,7 @@ func (context *Context) FromString(s string) (r DecQuad, err error) {
 	var (
 		i        int
 		strarray C.Strarray_t
-		result   C.Result_t
+		result   C.Ret_decQuad_t
 	)
 
 	if len(s) > MAX_STRING_SIZE {
@@ -774,7 +745,7 @@ func (context *Context) FromInt32(value int32) (r DecQuad) {
 // FromInt64 returns a DecQuad from a int64 value.
 //
 func (context *Context) FromInt64(value int64) (r DecQuad) {
-	var result C.Result_t
+	var result C.Ret_decQuad_t
 
 	result = C.mdq_from_int64(C.int64_t(value), context.set)
 
