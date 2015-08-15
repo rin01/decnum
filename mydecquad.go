@@ -590,7 +590,7 @@ func (context *Context) Min(a DecQuad, b DecQuad) (r DecQuad) {
 /************************************************************************/
 
 // AppendQuad appends string representation of decQuad into byte slice.
-// This representation is the BEST TO DISPLAY decQuad, because it shows all numbers having exponent between 0 and -34 (DECQUAD_Pmax), that is, all 34 significant digits, without using exponent notation.
+// This representation is the best to display decQuad, because it shows all numbers having exponent between 0 and -34 (DECQUAD_Pmax), that is, all 34 significant digits, without using exponent notation.
 //
 // All digits of the coefficient are displayed, e.g. 12344567890.123456789000000000000000
 // If the number must have an exponent because it is too large or too small, we can have    1.4E+201     0E-6176    Infinity
@@ -679,6 +679,7 @@ func AppendQuad(dst []byte, a *DecQuad) []byte {
 }
 
 // String is the preferred way to display a decQuad number.
+// It calls AppendQuad internally.
 //
 func (a DecQuad) String() string {
 	var buffer [DECQUAD_String]byte // to avoid reallocation, this capacity is needed to receive result of C.mdq_to_mallocated_QuadToString(), and also big enough to receive [sign] + [DECQUAD_Pmax digits] + [fractional dot]
