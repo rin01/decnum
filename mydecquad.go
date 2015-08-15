@@ -296,6 +296,15 @@ func (context *Context) Error() error {
 /*                                                                      */
 /************************************************************************/
 
+const (
+	CMP_LESS    Cmp_t = C.CMP_LESS    // 1
+	CMP_EQUAL   Cmp_t = C.CMP_EQUAL   // 2
+	CMP_GREATER Cmp_t = C.CMP_GREATER // 4
+	CMP_NAN     Cmp_t = C.CMP_NAN     // 8
+)
+
+type Cmp_t uint32 // result of Compare
+
 var (
 	g_zero DecQuad // a constant DecQuad with value 0
 	g_nan  DecQuad // a constant DecQuad with value Nan
@@ -476,19 +485,52 @@ func (context *Context) Quantize(a DecQuad, b DecQuad) (r DecQuad) {
 
 // Compare compares the value of a and b.
 //
-// If a <  b, returns -1.
-// If a == b, returns  0.
-// If a >  b, returns  1.
-// If a or b is Nan, returns Nan.
+//     If a <  b,        returns CMP_LESS
+//     If a == b,        returns CMP_GREATER
+//     If a >  b,        returns CMP_EQUAL
+//     If a or b is Nan, returns CMP_NAN
 //
-func (context *Context) Compare(a DecQuad, b DecQuad) (r DecQuad) {
-	var result C.Ret_decQuad_t
+// Compare doesn't set status flag, as no error occurs when just reading numbers.
+//
+// Example:
+//
+//     if ctx.Compare(a, b) & (CMP_GREATER|CMP_EQUAL) != 0 { // if a >= b
+//         ...
+//     }
+//
+func (context *Context) Compare(a DecQuad, b DecQuad) Cmp_t {
+	var result C.Ret_uint32_t
 
 	result = C.mdq_compare(a.val, b.val, context.set)
 
 	context.set = result.set
 
-	return DecQuad{val: result.val}
+	return Cmp_t(result.val)
+}
+
+// Cmp returns true if comparison of a and b complies with comp_mask.
+// It is easier to use than Compare.
+//
+// Cmp doesn't set status flag, as no error occurs when just reading numbers.
+//
+// Example:
+//
+//     if ctx.Cmp(a, b, CMP_GREATER|CMP_EQUAL) { // if a >= b
+//         ...
+//     }
+//
+func (context *Context) Cmp(a DecQuad, b DecQuad, comp_mask Cmp_t) bool {
+	var result C.Ret_uint32_t
+
+	result = C.mdq_compare(a.val, b.val, context.set)
+
+	context.set = result.set
+
+	if Cmp_t(result.val)&comp_mask != 0 {
+		return true
+	}
+
+	return false
 }
 
 // IsFinite returns true if a is not Infinite, nor Nan.

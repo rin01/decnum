@@ -14,6 +14,12 @@
 #define MDQ_NAN                          2     // result is Nan
 
 
+#define CMP_LESS        1
+#define CMP_EQUAL       2
+#define CMP_GREATER     4
+#define CMP_NAN         8
+
+
 void mdq_init(void);
 
 #define MAX_STRING_SIZE  50
@@ -59,6 +65,13 @@ typedef struct Ret_int32_t {
 
 // struct used to pass strings from C to Go, by value.
 //
+typedef struct Ret_uint32_t {
+  decContext  set;
+  uint32_t    val;
+} Ret_uint32_t;
+
+// struct used to pass strings from C to Go, by value.
+//
 typedef struct Ret_int64_t {
   decContext  set;
   int64_t     val;
@@ -84,7 +97,7 @@ Ret_decQuad_t    mdq_remainder(decQuad a, decQuad b, decContext set);
 Ret_decQuad_t    mdq_abs(decQuad a, decContext set);
 Ret_decQuad_t    mdq_to_integral(decQuad a, decContext set, int round);
 Ret_decQuad_t    mdq_quantize(decQuad a, decQuad b, decContext set);
-Ret_decQuad_t    mdq_compare(decQuad a, decQuad b, decContext set);
+Ret_uint32_t     mdq_compare(decQuad a, decQuad b, decContext set);
 uint32_t         mdq_is_finite(decQuad a);
 uint32_t         mdq_is_integer(decQuad a);
 uint32_t         mdq_is_infinite(decQuad a);

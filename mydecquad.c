@@ -266,14 +266,37 @@ Ret_decQuad_t mdq_quantize(decQuad a, decQuad b, decContext set) {
 
 /* compare.
 */
-Ret_decQuad_t mdq_compare(decQuad a, decQuad b, decContext set) {
+Ret_uint32_t mdq_compare(decQuad a, decQuad b, decContext set) {
 
-  Ret_decQuad_t     res;
+  decQuad         cmp_val;
+  Ret_uint32_t    res;
 
   /* operation */
 
-  decQuadCompare(&res.val, &a, &b, &set);
+  decQuadCompare(&cmp_val, &a, &b, &set);
   res.set = set;
+
+  if ( decQuadIsNaN(&cmp_val) ) {
+      res.val = CMP_NAN;
+      return res;
+  }
+
+  if ( decQuadIsZero(&cmp_val) ) {
+      res.val = CMP_EQUAL;
+      return res;
+  }
+
+  if ( decQuadIsPositive(&cmp_val) ) {
+      res.val = CMP_GREATER;
+      return res;
+  }
+
+  if ( decQuadIsNegative(&cmp_val) ) {
+      res.val = CMP_LESS;
+      return res;
+  }
+
+  assert(0); // never get here
 
   return res;
 }

@@ -102,15 +102,15 @@ func main() {
 
 	// ...
 
-	var comp decnum.DecQuad
+	var comp decnum.Cmp_t
 
-	comp = ctx.Compare(a, b)
+	comp = ctx.Compare(a, b) // note: Compare doesn't set status flag
 
 	if err := ctx.Error(); err != nil {
 		log.Fatalf("ERROR OCCURS !!!!!!!   %v\n", err)
 	}
 
-	fmt.Printf("comparison of %s and %s is %s\n", a.String(), b.String(), comp.String())
+	fmt.Printf("comparison of %s and %s is %d\n", a.String(), b.String(), comp)
 
 	//============================ quantize 'a' with pattern 'b' ================================
 
