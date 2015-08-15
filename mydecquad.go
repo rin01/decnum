@@ -128,12 +128,13 @@ const (
 	Flag_Inexact              Status_t = C.DEC_Inexact
 	Flag_Invalid_context      Status_t = C.DEC_Invalid_context
 	Flag_Invalid_operation    Status_t = C.DEC_Invalid_operation
-	//Flag_Lost_digits          Status_t = C.DEC_Lost_digits // exists only if DECSUBSET is set, which is not the case by default
 	Flag_Overflow  Status_t = C.DEC_Overflow
 	Flag_Clamped   Status_t = C.DEC_Clamped
 	Flag_Rounded   Status_t = C.DEC_Rounded
 	Flag_Subnormal Status_t = C.DEC_Subnormal
 	Flag_Underflow Status_t = C.DEC_Underflow // e.g. 1e-6000/1e1000
+
+	//Flag_Lost_digits          Status_t = C.DEC_Lost_digits // exists only if DECSUBSET is set, which is not the case by default
 )
 
 const ErrorMask Status_t = C.DEC_Errors // ErrorMask is a bitmask of many of the above flags, ORed together. After a series of operations, if status & decnum.Errors != 0, an error has occured, e.g. division by 0.
