@@ -8,7 +8,7 @@ http://speleotrove.com/decimal/
 
 I downloaded the decNumber package "International Components for Unicode (ICU)".
 
-### Documenation of original C decNumber package
+### Documentation of original C decNumber package
 
 Its documentation is here:
 http://speleotrove.com/decimal/decnumber.html
@@ -40,7 +40,7 @@ You can find an example of use in the directory decnum/example_decnum.
 
 ### DISCLAIMER
   I have written this package just to quickly experiment with decimal fixed-size base-10 floating point.
-  I think this package works quite well, but I haven't tested it __AT ALL__ !
+  I think this package works quite well, __but I haven't tested it AT ALL__ !
   So, don't use it in production, or read the code and write tests !
   The code is quite easy to read, and not very long.
 
