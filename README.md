@@ -13,7 +13,7 @@ I downloaded the decNumber package "International Components for Unicode (ICU)".
 Its documentation is here:
 http://speleotrove.com/decimal/decnumber.html
 
-More specifically, you should read this topic on "Context":
+More specifically, you should read these topics:
    - Context: http://speleotrove.com/decimal/dncont.html
    - decQuad: http://speleotrove.com/decimal/dnfloat.html
    - decQuad example: http://speleotrove.com/decimal/dnusers.html#example7
@@ -29,7 +29,16 @@ The original C decNumber package contains two kinds of data type:
 __This Go package only uses the decQuad data type__, which is 128 bits long. It can store numbers with 34 significant digits.
 It is very much like the float64, except that its precision is better (float64 has a precision of only 15 digits), and it works in base-10 instead of base-2.
 
- 
+I have only written the following files:
+   - mydecquad.c
+   - mydecquad.h
+   - mydecquad.go
+
+They are quite easy to read, and the pattern for calling C function is always the same.
+Parameters are always passed from Go to C as value, and in the other direction too.
+Strings are passed as array in struct, so they are passed by value too.
+
+
 ### Godoc
 https://godoc.org/github.com/rin01/decnum
 
