@@ -9,6 +9,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -690,14 +691,13 @@ func AppendQuad(dst []byte, a Quad) []byte {
 		ret_str = C.mdq_to_QuadToString(a.val) // may use exponent notation
 
 		str_slice = pool.Get().([]byte)[:DECQUAD_String]
+		defer pool.Put(str_slice)
 
 		for i := 0; i < int(ret_str.length); i++ {
 			str_slice[i] = byte(ret_str.s[i])
 		}
 
 		dst = append(dst, str_slice[:ret_str.length]...) // write buff into destination and return
-
-		pool.Put(str_slice)
 
 		return dst
 	}
@@ -756,10 +756,9 @@ func (a Quad) String() string {
 	var buffer []byte
 
 	buffer = pool.Get().([]byte)[:0] // capacity is enough to receive result of C.mdq_to_QuadToString(), and also big enough to receive [sign] + [DECQUAD_Pmax digits] + [fractional dot]
+	defer pool.Put(buffer)
 
 	ss := AppendQuad(buffer[:0], a)
-
-	pool.Put(buffer)
 
 	return string(ss)
 }
@@ -792,6 +791,25 @@ func (context *Context) ToInt64(a Quad, round Round_mode_t) int64 {
 
 	context.set = result.set
 	return int64(result.val)
+}
+
+// ToFloat64 returns the float64 value from a.
+//
+func (context *Context) ToFloat64(a Quad) float64 {
+	var (
+		err error
+		s   string
+		val float64
+	)
+
+	s = a.String()
+
+	if val, err = strconv.ParseFloat(s, 64); err != nil {
+		context.SetStatus(Flag_Conversion_syntax)
+		return 0
+	}
+
+	return val
 }
 
 /************************************************************************/
