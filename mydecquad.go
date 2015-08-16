@@ -14,16 +14,30 @@ import (
 	"sync"
 )
 
-// Note: in the comment block for cgo above, the path for LDFLAGS must be an "absolute" path.
+// Note: in the comment block for cgo above, if LDFLAGS is used, the path for LDFLAGS must be an "absolute" path.
 //       If it is a relative path, it seems that it is relative to the current directory when "go build" is run.
 //       As we want to run "go build decnum" from any location, the path must be absolute.
 //       See   Issue 5428 in May 2013: cmd/ld: relative #cgo LDFLAGS -L does not work
 //             This problem is still not resolved in May 2014.
+//
+//       *** this note is just a remainder, as LDFLAGS is not used here ***
+
+func assert(val bool) {
+	if val == false {
+		panic("assertion failed")
+	}
+}
 
 // Quad is just a struct with a C.decQuad value, which is an array of 16 bytes.
 type Quad struct {
-	val C.decQuad
+	val C.decQuad // array of 16 bytes
 }
+
+/************************************************************************/
+/*                                                                      */
+/*                 global constants and variables                       */
+/*                                                                      */
+/************************************************************************/
 
 const (
 	DECQUAD_Pmax   = C.DECQUAD_Pmax   // number of digits in coefficient
@@ -44,6 +58,57 @@ var (
 	ERROR_DEC_INVALID_CONTEXT      = errors.New("decnum: Invalid Context")
 )
 
+// g_nan, g_zero and g_one are private variable, because else, a user of the package can change their value by doing decnum.G_ZERO = ...
+
+var (
+	g_nan  Quad = nan_for_varinit()     // a constant Quad with value Nan. It runs BEFORE init().
+	g_zero Quad = zero_for_varinit()    // a constant Quad with value 0. It runs BEFORE init().
+	g_one  Quad = quad_for_varinit("1") // a constant Quad with value 1. It runs BEFORE init().
+)
+
+// used only to initialize the global variable g_nan.
+//
+// So, it runs BEFORE init().
+//
+func nan_for_varinit() (r Quad) {
+	var val C.decQuad
+
+	val = C.mdq_nan()
+
+	return Quad{val: val}
+}
+
+// used only to initialize the global variable g_zero.
+//
+// So, it runs BEFORE init().
+//
+func zero_for_varinit() (r Quad) {
+	var val C.decQuad
+
+	val = C.mdq_zero()
+
+	return Quad{val: val}
+}
+
+// used only to initialize some global variables, like g_one.
+//
+// So, it runs BEFORE init().
+//
+func quad_for_varinit(s string) (r Quad) {
+	var (
+		ctx Context
+		val Quad
+	)
+
+	val = ctx.FromString(s)
+
+	if err := ctx.Error(); err != nil {
+		panic("decnum: initialization error in quad_for_varinit()")
+	}
+
+	return val
+}
+
 /************************************************************************/
 /*                                                                      */
 /*                       init and version functions                     */
@@ -51,29 +116,20 @@ var (
 /************************************************************************/
 
 var (
-	DecNumber_version     string // version of the original C decNumber package
-	DecQuad_module_MACROS string // macros defined by the C decQuad module
+	DecNumber_version string = C.GoString(C.decQuadVersion()) // version of the original C decNumber package
+
+	DecQuad_module_MACROS string = fmt.Sprintf("decQuad module: DECDPUN %d, DECSUBSET %d, DECEXTFLAG %d. Constants DECQUAD_Pmax %d, DECQUAD_String %d DECQUAD_Bytes %d.",
+		C.DECDPUN, C.DECSUBSET, C.DECEXTFLAG, C.DECQUAD_Pmax, C.DECQUAD_String, C.DECQUAD_Bytes) // macros defined by the C decQuad module
 )
 
 func init() {
-
 	C.mdq_init()
-
-	DecNumber_version = C.GoString(C.decQuadVersion())
-
-	DecQuad_module_MACROS = fmt.Sprintf("decQuad module: DECDPUN %d, DECSUBSET %d, DECEXTFLAG %d. Constants DECQUAD_Pmax %d, DECQUAD_String %d DECQUAD_Bytes %d.", C.DECDPUN, C.DECSUBSET, C.DECEXTFLAG, C.DECQUAD_Pmax, C.DECQUAD_String, C.DECQUAD_Bytes)
 
 	if DECQUAD_Bytes != 16 { // DECQUAD_Bytes MUST NOT BE > 16, because Append_compressed_bytes() will silently fail if it is not the case
 		panic("DECQUAD_Bytes != 16")
 	}
 
 	assert(C.DECSUBSET == 0) // because else, we should define Flag_Lost_digits as status flag
-
-	// set global variables g_zero to 0, and g_nan to Nan
-
-	g_zero = zero_for_init()
-
-	g_nan = nan_for_init()
 }
 
 // Version returns the version of the original C decNumber package.
@@ -85,73 +141,28 @@ func Version() string {
 
 /************************************************************************/
 /*                                                                      */
-/*                          utility functions                           */
+/*                              Context                                 */
 /*                                                                      */
 /************************************************************************/
-
-func assert(val bool) {
-	if val == false {
-		panic("assertion failed")
-	}
-}
-
-type Round_mode_t int
-
-// Rounding mode is used if rounding is necessary during an operation.
-const (
-	ROUND_CEILING   Round_mode_t = C.DEC_ROUND_CEILING   // Round towards +Infinity.
-	ROUND_DOWN      Round_mode_t = C.DEC_ROUND_DOWN      // Round towards 0 (truncation).
-	ROUND_FLOOR     Round_mode_t = C.DEC_ROUND_FLOOR     // Round towards –Infinity.
-	ROUND_HALF_DOWN Round_mode_t = C.DEC_ROUND_HALF_DOWN // Round to nearest; if equidistant, round down.
-	ROUND_HALF_EVEN Round_mode_t = C.DEC_ROUND_HALF_EVEN // Round to nearest; if equidistant, round so that the final digit is even.
-	ROUND_HALF_UP   Round_mode_t = C.DEC_ROUND_HALF_UP   // Round to nearest; if equidistant, round up.
-	ROUND_UP        Round_mode_t = C.DEC_ROUND_UP        // Round away from 0.
-	ROUND_05UP      Round_mode_t = C.DEC_ROUND_05UP      // The same as DEC_ROUND_UP, except that rounding up only occurs if the digit to be rounded up is 0 or 5 and after Overflow the result is the same as for DEC_ROUND_DOWN.
-	ROUND_DEFAULT   Round_mode_t = ROUND_HALF_EVEN       // The same as DEC_ROUND_HALF_EVEN.
-)
-
-func (rounding Round_mode_t) String() string {
-
-	switch rounding {
-	case ROUND_CEILING:
-		return "ROUND_CEILING"
-	case ROUND_DOWN:
-		return "ROUND_DOWN"
-	case ROUND_FLOOR:
-		return "ROUND_FLOOR"
-	case ROUND_HALF_DOWN:
-		return "ROUND_HALF_DOWN"
-	case ROUND_HALF_EVEN:
-		return "ROUND_HALF_EVEN"
-	case ROUND_HALF_UP:
-		return "ROUND_HALF_UP"
-	case ROUND_UP:
-		return "ROUND_UP"
-	case ROUND_05UP:
-		return "ROUND_05UP"
-	default:
-		return "Unknown rounding mode"
-	}
-}
 
 type Status_t uint32
 
 const (
-	Flag_Conversion_syntax    Status_t = C.DEC_Conversion_syntax
-	Flag_Division_by_zero     Status_t = C.DEC_Division_by_zero
-	Flag_Division_impossible  Status_t = C.DEC_Division_impossible
-	Flag_Division_undefined   Status_t = C.DEC_Division_undefined
-	Flag_Insufficient_storage Status_t = C.DEC_Insufficient_storage
-	Flag_Inexact              Status_t = C.DEC_Inexact
-	Flag_Invalid_context      Status_t = C.DEC_Invalid_context
-	Flag_Invalid_operation    Status_t = C.DEC_Invalid_operation
-	Flag_Overflow             Status_t = C.DEC_Overflow
-	Flag_Clamped              Status_t = C.DEC_Clamped
-	Flag_Rounded              Status_t = C.DEC_Rounded
-	Flag_Subnormal            Status_t = C.DEC_Subnormal
-	Flag_Underflow            Status_t = C.DEC_Underflow // e.g. 1e-6000/1e1000
+	Flag_Conversion_syntax    Status_t = C.DEC_Conversion_syntax    // error flag
+	Flag_Division_by_zero     Status_t = C.DEC_Division_by_zero     // error flag
+	Flag_Division_impossible  Status_t = C.DEC_Division_impossible  // error flag
+	Flag_Division_undefined   Status_t = C.DEC_Division_undefined   // error flag
+	Flag_Insufficient_storage Status_t = C.DEC_Insufficient_storage // error flag
+	Flag_Inexact              Status_t = C.DEC_Inexact              // informational flag
+	Flag_Invalid_context      Status_t = C.DEC_Invalid_context      // error flag
+	Flag_Invalid_operation    Status_t = C.DEC_Invalid_operation    // error flag
+	Flag_Overflow             Status_t = C.DEC_Overflow             // error flag
+	Flag_Clamped              Status_t = C.DEC_Clamped              // informational flag
+	Flag_Rounded              Status_t = C.DEC_Rounded              // informational flag
+	Flag_Subnormal            Status_t = C.DEC_Subnormal            // informational flag
+	Flag_Underflow            Status_t = C.DEC_Underflow            // error flag. E.g. 1e-6000/1e1000
 
-	//Flag_Lost_digits          Status_t = C.DEC_Lost_digits // exists only if DECSUBSET is set, which is not the case by default
+	//Flag_Lost_digits          Status_t = C.DEC_Lost_digits        // informational flag. Exists only if DECSUBSET is set, which is not the case by default
 )
 
 const ErrorMask Status_t = C.DEC_Errors // ErrorMask is a bitmask of many of the above flags, ORed together. After a series of operations, if status & decnum.Errors != 0, an error has occured, e.g. division by 0.
@@ -236,11 +247,18 @@ const (
 	DEFAULT_DECQUAD Context_kind_t = C.DEC_INIT_DECQUAD // default Context settings for decQuad operations
 )
 
-// Init is used to initialize a context with default value for rounding mode, and status field is cleared.
+// initialize is used to initialize a context with default value for rounding mode, and clears status field.
 //
-func (context *Context) Init(kind Context_kind_t) {
+func (context *Context) initialize(kind Context_kind_t) {
 
 	context.set = C.mdq_context_default(context.set, C.uint32_t(kind))
+}
+
+// InitDefaultQuad is used to initialize a context with default value for Quad operations. It sets rounding mode, and clears status field.
+//
+func (context *Context) InitDefaultQuad() {
+
+	context.set = C.mdq_context_default(context.set, C.uint32_t(DEFAULT_DECQUAD))
 }
 
 // Rounding returns the rounding mode of the context.
@@ -310,6 +328,8 @@ func (context *Context) Error() error {
 
 	status = context.Status()
 
+	status = status & ErrorMask // discard informational flags, keep only error flags
+
 	if status&ErrorMask != 0 {
 		return fmt.Errorf("decnum error: %s", status.String())
 	}
@@ -323,6 +343,47 @@ func (context *Context) Error() error {
 /*                                                                      */
 /************************************************************************/
 
+type Round_mode_t int
+
+// Rounding mode is used if rounding is necessary during an operation.
+const (
+	ROUND_CEILING   Round_mode_t = C.DEC_ROUND_CEILING   // Round towards +Infinity.
+	ROUND_DOWN      Round_mode_t = C.DEC_ROUND_DOWN      // Round towards 0 (truncation).
+	ROUND_FLOOR     Round_mode_t = C.DEC_ROUND_FLOOR     // Round towards –Infinity.
+	ROUND_HALF_DOWN Round_mode_t = C.DEC_ROUND_HALF_DOWN // Round to nearest; if equidistant, round down.
+	ROUND_HALF_EVEN Round_mode_t = C.DEC_ROUND_HALF_EVEN // Round to nearest; if equidistant, round so that the final digit is even.
+	ROUND_HALF_UP   Round_mode_t = C.DEC_ROUND_HALF_UP   // Round to nearest; if equidistant, round up.
+	ROUND_UP        Round_mode_t = C.DEC_ROUND_UP        // Round away from 0.
+	ROUND_05UP      Round_mode_t = C.DEC_ROUND_05UP      // The same as DEC_ROUND_UP, except that rounding up only occurs if the digit to be rounded up is 0 or 5 and after Overflow the result is the same as for DEC_ROUND_DOWN.
+	ROUND_DEFAULT   Round_mode_t = ROUND_HALF_EVEN       // The same as DEC_ROUND_HALF_EVEN.
+)
+
+func (rounding Round_mode_t) String() string {
+
+	switch rounding {
+	case ROUND_CEILING:
+		return "ROUND_CEILING"
+	case ROUND_DOWN:
+		return "ROUND_DOWN"
+	case ROUND_FLOOR:
+		return "ROUND_FLOOR"
+	case ROUND_HALF_DOWN:
+		return "ROUND_HALF_DOWN"
+	case ROUND_HALF_EVEN:
+		return "ROUND_HALF_EVEN"
+	case ROUND_HALF_UP:
+		return "ROUND_HALF_UP"
+	case ROUND_UP:
+		return "ROUND_UP"
+	case ROUND_05UP:
+		return "ROUND_05UP"
+	default:
+		return "Unknown rounding mode"
+	}
+}
+
+type Cmp_t uint32 // result of Compare
+
 const (
 	CMP_LESS    Cmp_t = C.CMP_LESS    // 1
 	CMP_EQUAL   Cmp_t = C.CMP_EQUAL   // 2
@@ -330,34 +391,23 @@ const (
 	CMP_NAN     Cmp_t = C.CMP_NAN     // 8
 )
 
-type Cmp_t uint32 // result of Compare
+func (cmp Cmp_t) String() string {
 
-var (
-	g_zero Quad // a constant Quad with value 0
-	g_nan  Quad // a constant Quad with value Nan
-)
-
-// used only by init() to initialize the global variable g_zero.
-//
-func zero_for_init() (r Quad) {
-	var val C.decQuad
-
-	val = C.mdq_zero()
-
-	return Quad{val: val}
+	switch cmp {
+	case CMP_LESS:
+		return "CMP_LESS"
+	case CMP_EQUAL:
+		return "CMP_EQUAL"
+	case CMP_GREATER:
+		return "CMP_GREATER"
+	case CMP_NAN:
+		return "CMP_NAN"
+	default:
+		return "Unknown Cmp_t"
+	}
 }
 
-// used only by init() to initialize the global variable g_Nan.
-//
-func nan_for_init() (r Quad) {
-	var val C.decQuad
-
-	val = C.mdq_nan()
-
-	return Quad{val: val}
-}
-
-// return a 0 Quad value.
+// return 0 Quad value.
 //
 //     r = Zero()  // assign 0 to the Quad r
 //
@@ -366,13 +416,33 @@ func Zero() (r Quad) {
 	return g_zero
 }
 
-// return a Nan Quad value.
+// return 1 Quad value.
+//
+//     r = One()  // assign 1 to the Quad r
+//
+func One() (r Quad) {
+
+	return g_one
+}
+
+// return Nan Quad value.
 //
 //     r = Nan()  // assign Nan to the Quad r
 //
 func Nan() (r Quad) {
 
 	return g_nan
+}
+
+// Copy returns a copy of a.
+//
+// But it is easier to just use '=' :
+//
+//        a = r
+//
+func Copy(a Quad) (r Quad) {
+
+	return a
 }
 
 // Minus returns -a.
@@ -548,9 +618,84 @@ func (context *Context) Cmp(a Quad, b Quad, comp_mask Cmp_t) bool {
 	return false
 }
 
+// Greater is same as Cmp(a, b, CMP_GREATER)
+//
+func (context *Context) Greater(a Quad, b Quad) bool {
+	var result C.Ret_uint32_t
+
+	result = C.mdq_compare(a.val, b.val, context.set)
+
+	context.set = result.set
+	if Cmp_t(result.val)&CMP_GREATER != 0 {
+		return true
+	}
+
+	return false
+}
+
+// GreaterEqual is same as Cmp(a, b, CMP_GREATER|CMP_EQUAL)
+//
+func (context *Context) GreaterEqual(a Quad, b Quad) bool {
+	var result C.Ret_uint32_t
+
+	result = C.mdq_compare(a.val, b.val, context.set)
+
+	context.set = result.set
+	if Cmp_t(result.val)&(CMP_GREATER|CMP_EQUAL) != 0 {
+		return true
+	}
+
+	return false
+}
+
+// Equal is same as Cmp(a, b, CMP_EQUAL)
+//
+func (context *Context) Equal(a Quad, b Quad) bool {
+	var result C.Ret_uint32_t
+
+	result = C.mdq_compare(a.val, b.val, context.set)
+
+	context.set = result.set
+	if Cmp_t(result.val)&CMP_EQUAL != 0 {
+		return true
+	}
+
+	return false
+}
+
+// LessEqual is same as Cmp(a, b, CMP_LESS|CMP_EQUAL)
+//
+func (context *Context) LessEqual(a Quad, b Quad) bool {
+	var result C.Ret_uint32_t
+
+	result = C.mdq_compare(a.val, b.val, context.set)
+
+	context.set = result.set
+	if Cmp_t(result.val)&(CMP_LESS|CMP_EQUAL) != 0 {
+		return true
+	}
+
+	return false
+}
+
+// Less is same as Cmp(a, b, CMP_LESS)
+//
+func (context *Context) Less(a Quad, b Quad) bool {
+	var result C.Ret_uint32_t
+
+	result = C.mdq_compare(a.val, b.val, context.set)
+
+	context.set = result.set
+	if Cmp_t(result.val)&CMP_LESS != 0 {
+		return true
+	}
+
+	return false
+}
+
 // IsFinite returns true if a is not Infinite, nor Nan.
 //
-func (context *Context) IsFinite(a Quad) bool {
+func (a Quad) IsFinite() bool {
 
 	if C.mdq_is_finite(a.val) != 0 {
 		return true
@@ -561,7 +706,7 @@ func (context *Context) IsFinite(a Quad) bool {
 
 // IsInteger returns true if a is finite and has exponent=0.
 //
-func (context *Context) IsInteger(a Quad) bool {
+func (a Quad) IsInteger() bool {
 
 	if C.mdq_is_integer(a.val) != 0 {
 		return true
@@ -572,7 +717,7 @@ func (context *Context) IsInteger(a Quad) bool {
 
 // IsInfinite returns true if a is Infinite.
 //
-func (context *Context) IsInfinite(a Quad) bool {
+func (a Quad) IsInfinite() bool {
 
 	if C.mdq_is_infinite(a.val) != 0 {
 		return true
@@ -583,7 +728,7 @@ func (context *Context) IsInfinite(a Quad) bool {
 
 // IsNan returns true if a is Nan.
 //
-func (context *Context) IsNan(a Quad) bool {
+func (a Quad) IsNan() bool {
 
 	if C.mdq_is_nan(a.val) != 0 {
 		return true
@@ -592,11 +737,11 @@ func (context *Context) IsNan(a Quad) bool {
 	return false
 }
 
-// IsNegative returns true if a is Nan.
+// IsPositive returns true if a > 0 and not Nan.
 //
-func (context *Context) IsNegative(a Quad) bool {
+func (a Quad) IsPositive() bool {
 
-	if C.mdq_is_negative(a.val) != 0 {
+	if C.mdq_is_positive(a.val) != 0 {
 		return true
 	}
 
@@ -605,9 +750,20 @@ func (context *Context) IsNegative(a Quad) bool {
 
 // IsZero returns true if a == 0.
 //
-func (context *Context) IsZero(a Quad) bool {
+func (a Quad) IsZero() bool {
 
 	if C.mdq_is_zero(a.val) != 0 {
+		return true
+	}
+
+	return false
+}
+
+// IsNegative returns true if a < 0 and not Nan.
+//
+func (a Quad) IsNegative() bool {
+
+	if C.mdq_is_negative(a.val) != 0 {
 		return true
 	}
 

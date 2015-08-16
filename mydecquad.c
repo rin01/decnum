@@ -5,10 +5,12 @@
 /*                          init and context                            */
 /************************************************************************/
 
-static decQuad g_one;  // contains 1
+static decQuad static_one;  // contains 1, only used by mdq_to_int64
 
 
 /* initialize the global constants used by this library.
+
+   It is called by Go in init() function.
 
    Exit(1) if an error occurs.
 */
@@ -24,9 +26,9 @@ void mdq_init(void) {
   assert( DECQUAD_Pmax == 34 );             // we have 34 digits max precision.
   assert( DECQUAD_String > DECQUAD_Pmax );  // because Go function quad.AppendQuad()
 
-  // put 1 in g_one
+  // put 1 in static_one
 
-  decQuadFromInt32(&g_one, 1);
+  decQuadFromInt32(&static_one, 1); // IMPORTANT: this means that mdq_to_int64 can only be called after Go init() has been run, as it uses static_one. ctx.ToInt32() cannot be called to initialize Go global variables.
 
 }
 
@@ -319,14 +321,6 @@ uint32_t mdq_is_nan(decQuad a) {
 }
 
 
-/* check if a is < 0 and not Nan.
-*/
-uint32_t mdq_is_negative(decQuad a) {
-
-  return decQuadIsNegative(&a);
-}
-
-
 /* check if a is > 0 and not Nan.
 */
 uint32_t mdq_is_positive(decQuad a) {
@@ -340,6 +334,14 @@ uint32_t mdq_is_positive(decQuad a) {
 uint32_t mdq_is_zero(decQuad a) {
 
   return decQuadIsZero(&a);
+}
+
+
+/* check if a is < 0 and not Nan.
+*/
+uint32_t mdq_is_negative(decQuad a) {
+
+  return decQuadIsNegative(&a);
 }
 
 
@@ -472,7 +474,7 @@ Ret_int64_t mdq_to_int64(decQuad a, decContext set, int round) {
 
   decQuadToIntegralValue(&a_integral, &a, &set, round);
 
-  decQuadQuantize(&a_integral_quantized, &a_integral, &g_one, &set); // because else, 1e3 remains 1e3, and we want 1000
+  decQuadQuantize(&a_integral_quantized, &a_integral, &static_one, &set); // because else, 1e3 remains 1e3, and we want 1000
 
   if (set.status & DEC_Errors) {
     ret.set = set;

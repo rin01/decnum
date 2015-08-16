@@ -33,7 +33,7 @@ func main() {
 	fmt.Println("")
 	fmt.Println("========= division a/b ==========")
 
-	ctx.Init(decnum.DEFAULT_DECQUAD) // initialize context with default settings for Quad operations. Essentially, it contains the rounding mode.
+	ctx.InitDefaultQuad() // initialize context with default settings for Quad operations. Essentially, it contains the rounding mode.
 
 	fmt.Printf("rounding: %s\n", ctx.Rounding()) // display default rounding mode
 
@@ -51,21 +51,21 @@ func main() {
 	}
 
 	fmt.Println("")
-	fmt.Println("a is:  ", a.String())
-	fmt.Println("b is:  ", b.String())
+	fmt.Println("a is:  ", a)
+	fmt.Println("b is:  ", b)
 
 	fmt.Println("")
-	fmt.Println("r is:  ", r.String(), "we see that an uninitialized Quad contains garbage.")
+	fmt.Println("r is:  ", r, "we see that an uninitialized Quad contains garbage.")
 
 	r = ctx.Divide(a, b) // but no need to initialize r with decnum.Zero(), because its value is overwritten by the operation
 	// ...
 	// you can put other operations here, you will check for error after the series of operations
 	// ...
 
-	fmt.Println("r", r.String())
+	fmt.Println("r", r)
 
 	status := ctx.Status()
-	fmt.Printf("status: %d\n", status)
+	fmt.Printf("status: %s\n", status)
 
 	if err := ctx.Error(); err != nil { // check if an error flag has been set. No need to check for error after each operation, wee can just check it after a series of operations have been done.
 		log.Printf("ERROR OCCURED !!!!!!!   %v\n", err)
@@ -90,7 +90,7 @@ func main() {
 		log.Printf("ERROR OCCURED !!!!!!!   %v\n", err)
 	}
 
-	fmt.Printf("%s converted to int64 is %d\n", a.String(), x) // you can always print a Quad, it always contains a valid value, even after errors
+	fmt.Printf("%s converted to int64 is %d\n", a, x) // you can always print a Quad, it always contains a valid value, even after errors
 
 	//============================ compare 'a' and 'b' ================================
 
@@ -111,7 +111,7 @@ func main() {
 		log.Fatalf("ERROR OCCURED !!!!!!!   %v\n", err)
 	}
 
-	fmt.Printf("comparison of %s and %s is %d\n", a.String(), b.String(), comp)
+	fmt.Printf("comparison of %s and %s is %d\n", a, b, comp)
 
 	//============================ quantize 'a' with pattern 'b' ================================
 
@@ -132,7 +132,7 @@ func main() {
 		log.Printf("ERROR OCCURED !!!!!!!   %v\n", err)
 	}
 
-	fmt.Printf("quantization of %s with %s is %s\n", a.String(), b.String(), q.String())
+	fmt.Printf("quantization of %s with %s is %s\n", a, b, q)
 
 	//============================ loop ================================
 
@@ -146,10 +146,16 @@ func main() {
 
 	for i:=0; i<50; i++ {
 		h = ctx.Add(h, hh)
-		fmt.Printf("%d   %s\n", i, h.String())
+		fmt.Printf("%d   %s\n", i, h)
 	}
 
 	if err := ctx.Error(); err != nil {
 		log.Printf("ERROR OCCURED !!!!!!!   %v\n", err)
 	}
+
+
+
+
+	fmt.Println("beuu", a)
+	fmt.Printf("beuu %s\n", a)
 }

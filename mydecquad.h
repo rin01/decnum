@@ -102,9 +102,9 @@ uint32_t         mdq_is_finite(decQuad a);
 uint32_t         mdq_is_integer(decQuad a);
 uint32_t         mdq_is_infinite(decQuad a);
 uint32_t         mdq_is_nan(decQuad a);
-uint32_t         mdq_is_negative(decQuad a);
 uint32_t         mdq_is_positive(decQuad a);
 uint32_t         mdq_is_zero(decQuad a);
+uint32_t         mdq_is_negative(decQuad a);
 Ret_decQuad_t    mdq_max(decQuad a, decQuad b, decContext set);
 Ret_decQuad_t    mdq_min(decQuad a, decQuad b, decContext set);
 

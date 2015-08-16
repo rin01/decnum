@@ -13,7 +13,7 @@ Example of use:
 		r   decnum.Quad
 	)
 
-	ctx.Init(decnum.DEFAULT_DECQUAD) // initialize context with default settings for Quad operations. Essentially, it contains the rounding mode.
+	ctx.InitDefaultQuad()           // initialize context with default settings for Quad operations. Essentially, it contains the rounding mode.
 
 	a = ctx.FromString("1234.5678") // convert string to Quad. If error, a status bit in ctx will be set.
 	b = ctx.FromString("-45.7")     //   Error bits in status can be tested with ctx.Error() at any time. Errors are cumulative, and only ctx.ResetStatus() will clear them.
