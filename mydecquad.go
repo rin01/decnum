@@ -290,7 +290,20 @@ func (context *Context) ResetStatus() {
 }
 
 // Error checks if status contains a flag that should be considered as an error.
-// In this case, the resut of the operations contains Nan or Infinite, or a infinitesimal number if Underflow-
+// In this case, the resut of the operations contains Nan or Infinite, or an infinitesimal number if Underflow.
+// It contains 0 if conversion to int64, float64, etc failed.
+//
+// It is not necessary and not usual to check for errors after each operation.
+// You can make many arithmetic operations in a row, and check ctx.Error() when you are finished.
+//
+// If an error occured, the subsequent operations will work on operands that will frequently be Nan, and Nan will propagate.
+// But if you convert a Quad to a int32 and overflow occurs, the value returned is 0, making the error not so obvious to detect.
+//
+// So, don't forget to call ctx.Errors at the end of each series of operations.
+//
+// Errors accumulate in the status field of Context, setting bits but never clearing them. So, an error will never be lost.
+//
+// Before you begin a new series of operations, you must clear the Context status field with ctx.ResetStatus().
 //
 func (context *Context) Error() error {
 	var status Status_t
