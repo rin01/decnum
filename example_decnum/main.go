@@ -16,9 +16,9 @@ import (
 func main() {
 	var (
 		ctx decnum.Context
-		a   decnum.DecQuad
-		b   decnum.DecQuad
-		r   decnum.DecQuad
+		a   decnum.Quad
+		b   decnum.Quad
+		r   decnum.Quad
 	)
 
 	if len(os.Args) != 3 {
@@ -33,7 +33,7 @@ func main() {
 	fmt.Println("")
 	fmt.Println("========= division a/b ==========")
 
-	ctx.Init(decnum.DEFAULT_DECQUAD) // initialize context with default settings for DecQuad operations. Essentially, it contains the rounding mode.
+	ctx.Init(decnum.DEFAULT_DECQUAD) // initialize context with default settings for Quad operations. Essentially, it contains the rounding mode.
 
 	fmt.Printf("rounding: %s\n", ctx.Rounding()) // display default rounding mode
 
@@ -43,8 +43,8 @@ func main() {
 	ctx.SetRounding(decnum.ROUND_HALF_EVEN) // we can change it again
 	fmt.Printf("rounding: %s\n", ctx.Rounding())
 
-	a = ctx.FromString(os.Args[1]) // convert first argument to DecQuad
-	b = ctx.FromString(os.Args[2]) // convert 2nd argument to DecQuad
+	a = ctx.FromString(os.Args[1]) // convert first argument to Quad
+	b = ctx.FromString(os.Args[2]) // convert 2nd argument to Quad
 
 	if err := ctx.Error(); err != nil { // check if string conversion succeeded
 		fmt.Println("ERROR: incorrect string input...")
@@ -55,7 +55,7 @@ func main() {
 	fmt.Println("b is:  ", b.String())
 
 	fmt.Println("")
-	fmt.Println("r is:  ", r.String(), "we see that an uninitialized DecQuad contains garbage.")
+	fmt.Println("r is:  ", r.String(), "we see that an uninitialized Quad contains garbage.")
 
 	r = ctx.Divide(a, b) // but no need to initialize r with decnum.Zero(), because its value is overwritten by the operation
 	// ...
@@ -68,7 +68,7 @@ func main() {
 	fmt.Printf("status: %d\n", status)
 
 	if err := ctx.Error(); err != nil { // check if an error flag has been set. No need to check for error after each operation, wee can just check it after a series of operations have been done.
-		log.Printf("ERROR OCCURS !!!!!!!   %v\n", err)
+		log.Printf("ERROR OCCURED !!!!!!!   %v\n", err)
 	}
 
 	//=========================== convert 'a' to int64 =================================
@@ -87,10 +87,10 @@ func main() {
 	x = ctx.ToInt64(a, decnum.ROUND_HALF_EVEN)
 
 	if err := ctx.Error(); err != nil { // check for errors
-		log.Printf("ERROR OCCURS !!!!!!!   %v\n", err)
+		log.Printf("ERROR OCCURED !!!!!!!   %v\n", err)
 	}
 
-	fmt.Printf("%s converted to int64 is %d\n", a.String(), x) // you can always print a DecQuad, it always contains a valid value, even after errors
+	fmt.Printf("%s converted to int64 is %d\n", a.String(), x) // you can always print a Quad, it always contains a valid value, even after errors
 
 	//============================ compare 'a' and 'b' ================================
 
@@ -108,7 +108,7 @@ func main() {
 	comp = ctx.Compare(a, b) // note: Compare doesn't set status flag
 
 	if err := ctx.Error(); err != nil {
-		log.Fatalf("ERROR OCCURS !!!!!!!   %v\n", err)
+		log.Fatalf("ERROR OCCURED !!!!!!!   %v\n", err)
 	}
 
 	fmt.Printf("comparison of %s and %s is %d\n", a.String(), b.String(), comp)
@@ -124,27 +124,34 @@ func main() {
 
 	// ...
 
-	var q decnum.DecQuad
+	var q decnum.Quad
 
 	q = ctx.Quantize(a, b)
 
 	if err := ctx.Error(); err != nil {
-		log.Printf("ERROR OCCURS !!!!!!!   %v\n", err)
+		log.Printf("ERROR OCCURED !!!!!!!   %v\n", err)
 	}
 
 	fmt.Printf("quantization of %s with %s is %s\n", a.String(), b.String(), q.String())
 
-	var h decnum.DecQuad = decnum.Zero()
-	var hh decnum.DecQuad = ctx.FromInt32(2)
+	//============================ loop ================================
+
+	fmt.Println("")
+	fmt.Println("========= loop ==========")
+
+	ctx.ResetStatus() // clear the status
+
+	var h decnum.Quad = decnum.Zero()
+	var hh decnum.Quad = ctx.FromInt32(1000000000)
 
 	for i:=0; i<50; i++ {
 		h = ctx.Add(h, hh)
-		fmt.Printf("   %s\n", h.String())
+		fmt.Printf("%d   %s\n", i, h.String())
 	}
 
-	var tt decnum.DecQuad
-	var zz = 0.000
-	tt = ctx.FromFloat64(0. / zz)
+	if err := ctx.Error(); err != nil {
+		log.Printf("ERROR OCCURED !!!!!!!   %v\n", err)
+	}
 
-	fmt.Println(tt.String())
+
 }

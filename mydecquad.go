@@ -19,8 +19,8 @@ import (
 //       See   Issue 5428 in May 2013: cmd/ld: relative #cgo LDFLAGS -L does not work
 //             This problem is still not resolved in May 2014.
 
-// DecQuad is just a struct with a C.decQuad value, which is an array of 16 bytes.
-type DecQuad struct {
+// Quad is just a struct with a C.decQuad value, which is an array of 16 bytes.
+type Quad struct {
 	val C.decQuad
 }
 
@@ -319,145 +319,145 @@ const (
 type Cmp_t uint32 // result of Compare
 
 var (
-	g_zero DecQuad // a constant DecQuad with value 0
-	g_nan  DecQuad // a constant DecQuad with value Nan
+	g_zero Quad // a constant Quad with value 0
+	g_nan  Quad // a constant Quad with value Nan
 )
 
 // used only by init() to initialize the global variable g_zero.
 //
-func zero_for_init() (r DecQuad) {
+func zero_for_init() (r Quad) {
 	var val C.decQuad
 
 	val = C.mdq_zero()
 
-	return DecQuad{val: val}
+	return Quad{val: val}
 }
 
 // used only by init() to initialize the global variable g_Nan.
 //
-func nan_for_init() (r DecQuad) {
+func nan_for_init() (r Quad) {
 	var val C.decQuad
 
 	val = C.mdq_nan()
 
-	return DecQuad{val: val}
+	return Quad{val: val}
 }
 
-// return a 0 DecQuad value.
+// return a 0 Quad value.
 //
-//     r = Zero()  // assign 0 to the DecQuad r
+//     r = Zero()  // assign 0 to the Quad r
 //
-func Zero() (r DecQuad) {
+func Zero() (r Quad) {
 
 	return g_zero
 }
 
-// return a Nan DecQuad value.
+// return a Nan Quad value.
 //
-//     r = Nan()  // assign Nan to the DecQuad r
+//     r = Nan()  // assign Nan to the Quad r
 //
-func Nan() (r DecQuad) {
+func Nan() (r Quad) {
 
 	return g_nan
 }
 
 // Minus returns -a.
 //
-func (context *Context) Minus(a DecQuad) (r DecQuad) {
+func (context *Context) Minus(a Quad) (r Quad) {
 	var result C.Ret_decQuad_t
 
 	result = C.mdq_minus(a.val, context.set)
 
 	context.set = result.set
-	return DecQuad{val: result.val}
+	return Quad{val: result.val}
 }
 
 // Add returns a + b.
 //
-func (context *Context) Add(a DecQuad, b DecQuad) (r DecQuad) {
+func (context *Context) Add(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
 
 	result = C.mdq_add(a.val, b.val, context.set)
 
 	context.set = result.set
-	return DecQuad{val: result.val}
+	return Quad{val: result.val}
 }
 
 // Subtract returns a - b.
 //
-func (context *Context) Subtract(a DecQuad, b DecQuad) (r DecQuad) {
+func (context *Context) Subtract(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
 
 	result = C.mdq_subtract(a.val, b.val, context.set)
 
 	context.set = result.set
-	return DecQuad{val: result.val}
+	return Quad{val: result.val}
 }
 
 // Multiply returns a * b.
 //
-func (context *Context) Multiply(a DecQuad, b DecQuad) (r DecQuad) {
+func (context *Context) Multiply(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
 
 	result = C.mdq_multiply(a.val, b.val, context.set)
 
 	context.set = result.set
-	return DecQuad{val: result.val}
+	return Quad{val: result.val}
 }
 
 // Divide returns a/b.
 //
-func (context *Context) Divide(a DecQuad, b DecQuad) (r DecQuad) {
+func (context *Context) Divide(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
 
 	result = C.mdq_divide(a.val, b.val, context.set)
 
 	context.set = result.set
-	return DecQuad{val: result.val}
+	return Quad{val: result.val}
 }
 
 // DivideInteger returns the integral part of a/b.
 //
-func (context *Context) DivideInteger(a DecQuad, b DecQuad) (r DecQuad) {
+func (context *Context) DivideInteger(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
 
 	result = C.mdq_divide_integer(a.val, b.val, context.set)
 
 	context.set = result.set
-	return DecQuad{val: result.val}
+	return Quad{val: result.val}
 }
 
 // Remainder returns the modulo of a and b.
 //
-func (context *Context) Remainder(a DecQuad, b DecQuad) (r DecQuad) {
+func (context *Context) Remainder(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
 
 	result = C.mdq_remainder(a.val, b.val, context.set)
 
 	context.set = result.set
-	return DecQuad{val: result.val}
+	return Quad{val: result.val}
 }
 
 // Abs returns the absolute value of a.
 //
-func (context *Context) Abs(a DecQuad) (r DecQuad) {
+func (context *Context) Abs(a Quad) (r Quad) {
 	var result C.Ret_decQuad_t
 
 	result = C.mdq_abs(a.val, context.set)
 
 	context.set = result.set
-	return DecQuad{val: result.val}
+	return Quad{val: result.val}
 }
 
 // ToIntegral returns the value of a rounded to an integral value.
 //
-func (context *Context) ToIntegral(a DecQuad, round Round_mode_t) (r DecQuad) {
+func (context *Context) ToIntegral(a Quad, round Round_mode_t) (r Quad) {
 	var result C.Ret_decQuad_t
 
 	result = C.mdq_to_integral(a.val, context.set, C.int(round))
 
 	context.set = result.set
-	return DecQuad{val: result.val}
+	return Quad{val: result.val}
 }
 
 // Quantize rounds a to the same pattern as b.
@@ -477,13 +477,13 @@ func (context *Context) ToIntegral(a DecQuad, round Round_mode_t) (r DecQuad) {
 //                    134.6454 with 1000000000    is   135           the value of b has no importance
 //                    134.6454 with 1E+2          is   1E+2
 //
-func (context *Context) Quantize(a DecQuad, b DecQuad) (r DecQuad) {
+func (context *Context) Quantize(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
 
 	result = C.mdq_quantize(a.val, b.val, context.set)
 
 	context.set = result.set
-	return DecQuad{val: result.val}
+	return Quad{val: result.val}
 }
 
 // Compare compares the value of a and b.
@@ -501,7 +501,7 @@ func (context *Context) Quantize(a DecQuad, b DecQuad) (r DecQuad) {
 //         ...
 //     }
 //
-func (context *Context) Compare(a DecQuad, b DecQuad) Cmp_t {
+func (context *Context) Compare(a Quad, b Quad) Cmp_t {
 	var result C.Ret_uint32_t
 
 	result = C.mdq_compare(a.val, b.val, context.set)
@@ -521,7 +521,7 @@ func (context *Context) Compare(a DecQuad, b DecQuad) Cmp_t {
 //         ...
 //     }
 //
-func (context *Context) Cmp(a DecQuad, b DecQuad, comp_mask Cmp_t) bool {
+func (context *Context) Cmp(a Quad, b Quad, comp_mask Cmp_t) bool {
 	var result C.Ret_uint32_t
 
 	result = C.mdq_compare(a.val, b.val, context.set)
@@ -536,7 +536,7 @@ func (context *Context) Cmp(a DecQuad, b DecQuad, comp_mask Cmp_t) bool {
 
 // IsFinite returns true if a is not Infinite, nor Nan.
 //
-func (context *Context) IsFinite(a DecQuad) bool {
+func (context *Context) IsFinite(a Quad) bool {
 
 	if C.mdq_is_finite(a.val) != 0 {
 		return true
@@ -547,7 +547,7 @@ func (context *Context) IsFinite(a DecQuad) bool {
 
 // IsInteger returns true if a is finite and has exponent=0.
 //
-func (context *Context) IsInteger(a DecQuad) bool {
+func (context *Context) IsInteger(a Quad) bool {
 
 	if C.mdq_is_integer(a.val) != 0 {
 		return true
@@ -558,7 +558,7 @@ func (context *Context) IsInteger(a DecQuad) bool {
 
 // IsInfinite returns true if a is Infinite.
 //
-func (context *Context) IsInfinite(a DecQuad) bool {
+func (context *Context) IsInfinite(a Quad) bool {
 
 	if C.mdq_is_infinite(a.val) != 0 {
 		return true
@@ -569,7 +569,7 @@ func (context *Context) IsInfinite(a DecQuad) bool {
 
 // IsNan returns true if a is Nan.
 //
-func (context *Context) IsNan(a DecQuad) bool {
+func (context *Context) IsNan(a Quad) bool {
 
 	if C.mdq_is_nan(a.val) != 0 {
 		return true
@@ -580,7 +580,7 @@ func (context *Context) IsNan(a DecQuad) bool {
 
 // IsNegative returns true if a is Nan.
 //
-func (context *Context) IsNegative(a DecQuad) bool {
+func (context *Context) IsNegative(a Quad) bool {
 
 	if C.mdq_is_negative(a.val) != 0 {
 		return true
@@ -591,7 +591,7 @@ func (context *Context) IsNegative(a DecQuad) bool {
 
 // IsZero returns true if a == 0.
 //
-func (context *Context) IsZero(a DecQuad) bool {
+func (context *Context) IsZero(a Quad) bool {
 
 	if C.mdq_is_zero(a.val) != 0 {
 		return true
@@ -603,25 +603,25 @@ func (context *Context) IsZero(a DecQuad) bool {
 // Max returns the larger of a and b.
 // If either a or b is NaN then the other argument is the result.
 //
-func (context *Context) Max(a DecQuad, b DecQuad) (r DecQuad) {
+func (context *Context) Max(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
 
 	result = C.mdq_max(a.val, b.val, context.set)
 
 	context.set = result.set
-	return DecQuad{val: result.val}
+	return Quad{val: result.val}
 }
 
 // Min returns the smaller of a and b.
 // If either a or b is NaN then the other argument is the result.
 //
-func (context *Context) Min(a DecQuad, b DecQuad) (r DecQuad) {
+func (context *Context) Min(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
 
 	result = C.mdq_min(a.val, b.val, context.set)
 
 	context.set = result.set
-	return DecQuad{val: result.val}
+	return Quad{val: result.val}
 }
 
 /************************************************************************/
@@ -638,10 +638,11 @@ func (context *Context) Min(a DecQuad, b DecQuad) (r DecQuad) {
 //
 // The pool must return []byte with capacity being the largest of DECQUAD_String and DECQUAD_Pmax.
 //
-var pool = sync.Pool {
-    New: func() interface{} {fmt.Println("---   POOL")
-        return make([]byte, DECQUAD_String) // largest of DECQUAD_String and DECQUAD_Pmax. This size is ok for AppendQuad and String methods.
-    },
+var pool = sync.Pool{
+	New: func() interface{} {
+		//fmt.Println("---   POOL")
+		return make([]byte, DECQUAD_String) // largest of DECQUAD_String and DECQUAD_Pmax. This size is ok for AppendQuad and String methods.
+	},
 }
 
 // AppendQuad appends string representation of decQuad into byte slice.
@@ -653,7 +654,7 @@ var pool = sync.Pool {
 //
 // Method String() calls AppendQuad internally.
 //
-func AppendQuad(dst []byte, a DecQuad) []byte {
+func AppendQuad(dst []byte, a Quad) []byte {
 	var (
 		ret_str   C.Ret_str
 		str_slice []byte // capacity must be exactly DECQUAD_String
@@ -751,7 +752,7 @@ func AppendQuad(dst []byte, a DecQuad) []byte {
 // String is the preferred way to display a decQuad number.
 // It calls AppendQuad internally.
 //
-func (a DecQuad) String() string {
+func (a Quad) String() string {
 	var buffer []byte
 
 	buffer = pool.Get().([]byte)[:0] // capacity is enough to receive result of C.mdq_to_QuadToString(), and also big enough to receive [sign] + [DECQUAD_Pmax digits] + [fractional dot]
@@ -772,7 +773,7 @@ func (a DecQuad) String() string {
 // ToInt32 returns the int32 value from a.
 // The rounding passed as argument is used, instead of the rounding mode of context which is ignored.
 //
-func (context *Context) ToInt32(a DecQuad, round Round_mode_t) int32 {
+func (context *Context) ToInt32(a Quad, round Round_mode_t) int32 {
 	var result C.Ret_int32_t
 
 	result = C.mdq_to_int32(a.val, context.set, C.int(round))
@@ -784,7 +785,7 @@ func (context *Context) ToInt32(a DecQuad, round Round_mode_t) int32 {
 // ToInt64 returns the int64 value from a.
 // The rounding passed as argument is used, instead of the rounding mode of context which is ignored.
 //
-func (context *Context) ToInt64(a DecQuad, round Round_mode_t) int64 {
+func (context *Context) ToInt64(a Quad, round Round_mode_t) int64 {
 	var result C.Ret_int64_t
 
 	result = C.mdq_to_int64(a.val, context.set, C.int(round))
@@ -801,9 +802,9 @@ func (context *Context) ToInt64(a DecQuad, round Round_mode_t) int64 {
 
 const MAX_STRING_CAPACITY = C.MAX_STRING_CAPACITY // string must be terminated by \0
 
-// FromString returns a DecQuad from a string.
+// FromString returns a Quad from a string.
 //
-func (context *Context) FromString(s string) (r DecQuad) {
+func (context *Context) FromString(s string) (r Quad) {
 	var (
 		i        int
 		strarray C.Strarray_t
@@ -827,40 +828,38 @@ func (context *Context) FromString(s string) (r DecQuad) {
 	result = C.mdq_from_string(strarray, context.set)
 
 	context.set = result.set
-	return DecQuad{val: result.val}
+	return Quad{val: result.val}
 }
 
-// FromInt32 returns a DecQuad from a int32 value.
+// FromInt32 returns a Quad from a int32 value.
 //
-func (context *Context) FromInt32(value int32) (r DecQuad) {
+func (context *Context) FromInt32(value int32) (r Quad) {
 	var result C.Ret_decQuad_t
 
 	result = C.mdq_from_int32(C.int32_t(value), context.set)
 
 	context.set = result.set
-	return DecQuad{val: result.val}
+	return Quad{val: result.val}
 }
 
-// FromInt64 returns a DecQuad from a int64 value.
+// FromInt64 returns a Quad from a int64 value.
 //
-func (context *Context) FromInt64(value int64) (r DecQuad) {
+func (context *Context) FromInt64(value int64) (r Quad) {
 	var result C.Ret_decQuad_t
 
 	result = C.mdq_from_int64(C.int64_t(value), context.set)
 
 	context.set = result.set
-	return DecQuad{val: result.val}
+	return Quad{val: result.val}
 }
 
-// FromFloat64 returns a DecQuad from a int64 value.
+// FromFloat64 returns a Quad from a int64 value.
 //
-func (context *Context) FromFloat64(value float64) (r DecQuad) {
+func (context *Context) FromFloat64(value float64) (r Quad) {
 	var result C.Ret_decQuad_t
 
 	result = C.mdq_from_double(C.double(value), context.set)
 
 	context.set = result.set
-	return DecQuad{val: result.val}
+	return Quad{val: result.val}
 }
-
-

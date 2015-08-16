@@ -53,11 +53,11 @@ You can find an example of use in the directory decnum/example_decnum.
 
 ### DISCLAIMER
   I have written this package just to quickly experiment with decimal fixed-size base-10 floating point.
-  I think this package works quite well, __but I haven't tested it AT ALL__ !
-  So, don't use it in production, or read the code and write tests !
-  The code is quite easy to read, and not very long.
+  I think this package works quite well, __but I haven't tested it as much as I would like__ !
+  So, don't use it in production without writing some tests !
+  The code is quite easy to read, and not very long. It uses cgo with the same pattern everywhere to call C functions.
 
   Unfortunately, I really don't have time to work on this package further on.
-  So, don't file issues, as I won't read them.
+  So, if you file issues, I won't answer rapidly.
 
 
