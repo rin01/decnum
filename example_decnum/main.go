@@ -25,6 +25,7 @@ func main() {
 		log.Fatal("2 numbers are required as argument")
 	}
 
+	fmt.Println(decnum.Version())
 	fmt.Println(decnum.DecQuad_module_MACROS) // just for info about the macros defined in C decQuad module
 
 	//========================= division a/b ==================================
@@ -83,7 +84,7 @@ func main() {
 
 	var x int64
 
-	x = ctx.ToInt64(a, decnum.ROUND_DOWN)
+	x = ctx.ToInt64(a, decnum.ROUND_HALF_EVEN)
 
 	if err := ctx.Error(); err != nil { // check for errors
 		log.Printf("ERROR OCCURS !!!!!!!   %v\n", err)
@@ -133,4 +134,17 @@ func main() {
 
 	fmt.Printf("quantization of %s with %s is %s\n", a.String(), b.String(), q.String())
 
+	var h decnum.DecQuad = decnum.Zero()
+	var hh decnum.DecQuad = ctx.FromInt32(2)
+
+	for i:=0; i<50; i++ {
+		h = ctx.Add(h, hh)
+		fmt.Printf("   %s\n", h.String())
+	}
+
+	var tt decnum.DecQuad
+	var zz = 0.000
+	tt = ctx.FromFloat64(0. / zz)
+
+	fmt.Println(tt.String())
 }

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 )
 
 // Note: in the comment block for cgo above, the path for LDFLAGS must be an "absolute" path.
@@ -44,15 +45,20 @@ var (
 
 /************************************************************************/
 /*                                                                      */
-/*                            init function                             */
+/*                       init and version functions                     */
 /*                                                                      */
 /************************************************************************/
 
-var DecQuad_module_MACROS string // macros defined by the C decQuad module
+var (
+	DecNumber_version     string // version of the original C decNumber package
+	DecQuad_module_MACROS string // macros defined by the C decQuad module
+)
 
 func init() {
 
 	C.mdq_init()
+
+	DecNumber_version = C.GoString(C.decQuadVersion())
 
 	DecQuad_module_MACROS = fmt.Sprintf("decQuad module: DECDPUN %d, DECSUBSET %d, DECEXTFLAG %d. Constants DECQUAD_Pmax %d, DECQUAD_String %d DECQUAD_Bytes %d.", C.DECDPUN, C.DECSUBSET, C.DECEXTFLAG, C.DECQUAD_Pmax, C.DECQUAD_String, C.DECQUAD_Bytes)
 
@@ -67,6 +73,13 @@ func init() {
 	g_zero = zero_for_init()
 
 	g_nan = nan_for_init()
+}
+
+// Version returns the version of the original C decNumber package.
+//
+func Version() string {
+
+	return DecNumber_version
 }
 
 /************************************************************************/
@@ -356,7 +369,6 @@ func (context *Context) Minus(a DecQuad) (r DecQuad) {
 	result = C.mdq_minus(a.val, context.set)
 
 	context.set = result.set
-
 	return DecQuad{val: result.val}
 }
 
@@ -368,7 +380,6 @@ func (context *Context) Add(a DecQuad, b DecQuad) (r DecQuad) {
 	result = C.mdq_add(a.val, b.val, context.set)
 
 	context.set = result.set
-
 	return DecQuad{val: result.val}
 }
 
@@ -380,7 +391,6 @@ func (context *Context) Subtract(a DecQuad, b DecQuad) (r DecQuad) {
 	result = C.mdq_subtract(a.val, b.val, context.set)
 
 	context.set = result.set
-
 	return DecQuad{val: result.val}
 }
 
@@ -392,7 +402,6 @@ func (context *Context) Multiply(a DecQuad, b DecQuad) (r DecQuad) {
 	result = C.mdq_multiply(a.val, b.val, context.set)
 
 	context.set = result.set
-
 	return DecQuad{val: result.val}
 }
 
@@ -404,7 +413,6 @@ func (context *Context) Divide(a DecQuad, b DecQuad) (r DecQuad) {
 	result = C.mdq_divide(a.val, b.val, context.set)
 
 	context.set = result.set
-
 	return DecQuad{val: result.val}
 }
 
@@ -416,7 +424,6 @@ func (context *Context) DivideInteger(a DecQuad, b DecQuad) (r DecQuad) {
 	result = C.mdq_divide_integer(a.val, b.val, context.set)
 
 	context.set = result.set
-
 	return DecQuad{val: result.val}
 }
 
@@ -428,7 +435,6 @@ func (context *Context) Remainder(a DecQuad, b DecQuad) (r DecQuad) {
 	result = C.mdq_remainder(a.val, b.val, context.set)
 
 	context.set = result.set
-
 	return DecQuad{val: result.val}
 }
 
@@ -440,7 +446,6 @@ func (context *Context) Abs(a DecQuad) (r DecQuad) {
 	result = C.mdq_abs(a.val, context.set)
 
 	context.set = result.set
-
 	return DecQuad{val: result.val}
 }
 
@@ -452,7 +457,6 @@ func (context *Context) ToIntegral(a DecQuad, round Round_mode_t) (r DecQuad) {
 	result = C.mdq_to_integral(a.val, context.set, C.int(round))
 
 	context.set = result.set
-
 	return DecQuad{val: result.val}
 }
 
@@ -479,7 +483,6 @@ func (context *Context) Quantize(a DecQuad, b DecQuad) (r DecQuad) {
 	result = C.mdq_quantize(a.val, b.val, context.set)
 
 	context.set = result.set
-
 	return DecQuad{val: result.val}
 }
 
@@ -504,7 +507,6 @@ func (context *Context) Compare(a DecQuad, b DecQuad) Cmp_t {
 	result = C.mdq_compare(a.val, b.val, context.set)
 
 	context.set = result.set
-
 	return Cmp_t(result.val)
 }
 
@@ -525,7 +527,6 @@ func (context *Context) Cmp(a DecQuad, b DecQuad, comp_mask Cmp_t) bool {
 	result = C.mdq_compare(a.val, b.val, context.set)
 
 	context.set = result.set
-
 	if Cmp_t(result.val)&comp_mask != 0 {
 		return true
 	}
@@ -608,7 +609,6 @@ func (context *Context) Max(a DecQuad, b DecQuad) (r DecQuad) {
 	result = C.mdq_max(a.val, b.val, context.set)
 
 	context.set = result.set
-
 	return DecQuad{val: result.val}
 }
 
@@ -621,7 +621,6 @@ func (context *Context) Min(a DecQuad, b DecQuad) (r DecQuad) {
 	result = C.mdq_min(a.val, b.val, context.set)
 
 	context.set = result.set
-
 	return DecQuad{val: result.val}
 }
 
@@ -630,6 +629,20 @@ func (context *Context) Min(a DecQuad, b DecQuad) (r DecQuad) {
 /*                      conversion to string                            */
 /*                                                                      */
 /************************************************************************/
+
+// pool is a pool of byte slice, used by AppendQuad and String.
+//
+// note:
+//    DECQUAD_String = 43
+//    DECQUAD_Pmax   = 34
+//
+// The pool must return []byte with capacity being the largest of DECQUAD_String and DECQUAD_Pmax.
+//
+var pool = sync.Pool {
+    New: func() interface{} {fmt.Println("---   POOL")
+        return make([]byte, DECQUAD_String) // largest of DECQUAD_String and DECQUAD_Pmax. This size is ok for AppendQuad and String methods.
+    },
+}
 
 // AppendQuad appends string representation of decQuad into byte slice.
 // This representation is the best to display decQuad, because it shows all numbers having exponent between 0 and -34 (DECQUAD_Pmax), that is, all 34 significant digits, without using exponent notation.
@@ -640,18 +653,18 @@ func (context *Context) Min(a DecQuad, b DecQuad) (r DecQuad) {
 //
 // Method String() calls AppendQuad internally.
 //
-func AppendQuad(dst []byte, a *DecQuad) []byte {
+func AppendQuad(dst []byte, a DecQuad) []byte {
 	var (
 		ret_str   C.Ret_str
-		str_slice []byte = make([]byte, DECQUAD_String)
+		str_slice []byte // capacity must be exactly DECQUAD_String
 
 		ret               C.Ret_BCD
 		d                 byte
 		skip_leading_zero bool = true
-		inf_nan           C.uint32_t
+		inf_nan           uint32
 		exp               int32
 		sign              uint32
-		BCD_slice         []byte = make([]byte, DECQUAD_Pmax)
+		BCD_slice         []byte // capacity must be exactly DECQUAD_Pmax
 
 		buff [DECQUAD_String]byte // array size is max of DECQUAD_String and DECQUAD_Pmax. DECQUAD_String is larger.
 	)
@@ -659,20 +672,32 @@ func AppendQuad(dst []byte, a *DecQuad) []byte {
 	// fill BCD array
 
 	ret = C.mdq_to_BCD(a.val) // sign will be 1 for negative and non-zero number, else, 0. If Inf or Nan, returns an error.
+
+	BCD_slice = pool.Get().([]byte)[:DECQUAD_Pmax]
+	defer pool.Put(BCD_slice)
+
 	for i := 0; i < DECQUAD_Pmax; i++ {
 		BCD_slice[i] = byte(ret.BCD[i])
 	}
+	inf_nan = uint32(ret.inf_nan)
 	exp = int32(ret.exp)
 	sign = uint32(ret.sign)
-	inf_nan = ret.inf_nan
 
-	if exp > 0 || exp < -DECQUAD_Pmax || inf_nan != 0 { // if decQuad value is not in 34 digits range, or Inf or Nan, we want our function to output the number, or Infinity, or NaN.
+	// if decQuad value is not in 34 digits range, or Inf or Nan, we want our function to output the number, or Infinity, or NaN.
+
+	if exp > 0 || exp < -DECQUAD_Pmax || inf_nan != 0 {
 		ret_str = C.mdq_to_QuadToString(a.val) // may use exponent notation
+
+		str_slice = pool.Get().([]byte)[:DECQUAD_String]
+
 		for i := 0; i < int(ret_str.length); i++ {
 			str_slice[i] = byte(ret_str.s[i])
 		}
 
 		dst = append(dst, str_slice[:ret_str.length]...) // write buff into destination and return
+
+		pool.Put(str_slice)
+
 		return dst
 	}
 
@@ -727,9 +752,13 @@ func AppendQuad(dst []byte, a *DecQuad) []byte {
 // It calls AppendQuad internally.
 //
 func (a DecQuad) String() string {
-	var buffer [DECQUAD_String]byte // to avoid reallocation, this capacity is needed to receive result of C.mdq_to_mallocated_QuadToString(), and also big enough to receive [sign] + [DECQUAD_Pmax digits] + [fractional dot]
+	var buffer []byte
 
-	ss := AppendQuad(buffer[:0], &a)
+	buffer = pool.Get().([]byte)[:0] // capacity is enough to receive result of C.mdq_to_QuadToString(), and also big enough to receive [sign] + [DECQUAD_Pmax digits] + [fractional dot]
+
+	ss := AppendQuad(buffer[:0], a)
+
+	pool.Put(buffer)
 
 	return string(ss)
 }
@@ -749,7 +778,6 @@ func (context *Context) ToInt32(a DecQuad, round Round_mode_t) int32 {
 	result = C.mdq_to_int32(a.val, context.set, C.int(round))
 
 	context.set = result.set
-
 	return int32(result.val)
 }
 
@@ -762,7 +790,6 @@ func (context *Context) ToInt64(a DecQuad, round Round_mode_t) int64 {
 	result = C.mdq_to_int64(a.val, context.set, C.int(round))
 
 	context.set = result.set
-
 	return int64(result.val)
 }
 
@@ -772,7 +799,7 @@ func (context *Context) ToInt64(a DecQuad, round Round_mode_t) int64 {
 /*                                                                      */
 /************************************************************************/
 
-const MAX_STRING_SIZE = C.MAX_STRING_SIZE
+const MAX_STRING_CAPACITY = C.MAX_STRING_CAPACITY // string must be terminated by \0
 
 // FromString returns a DecQuad from a string.
 //
@@ -785,7 +812,7 @@ func (context *Context) FromString(s string) (r DecQuad) {
 
 	s = strings.TrimSpace(s)
 
-	if len(s) > MAX_STRING_SIZE {
+	if len(s) >= MAX_STRING_CAPACITY { // must be room for terminating \0
 		context.SetStatus(Flag_Conversion_syntax)
 		r = Nan()
 		return r
@@ -800,17 +827,18 @@ func (context *Context) FromString(s string) (r DecQuad) {
 	result = C.mdq_from_string(strarray, context.set)
 
 	context.set = result.set
-
 	return DecQuad{val: result.val}
 }
 
 // FromInt32 returns a DecQuad from a int32 value.
 //
 func (context *Context) FromInt32(value int32) (r DecQuad) {
+	var result C.Ret_decQuad_t
 
-	C.decQuadFromInt32(&r.val, C.int32_t(value))
+	result = C.mdq_from_int32(C.int32_t(value), context.set)
 
-	return r
+	context.set = result.set
+	return DecQuad{val: result.val}
 }
 
 // FromInt64 returns a DecQuad from a int64 value.
@@ -821,6 +849,18 @@ func (context *Context) FromInt64(value int64) (r DecQuad) {
 	result = C.mdq_from_int64(C.int64_t(value), context.set)
 
 	context.set = result.set
-
 	return DecQuad{val: result.val}
 }
+
+// FromFloat64 returns a DecQuad from a int64 value.
+//
+func (context *Context) FromFloat64(value float64) (r DecQuad) {
+	var result C.Ret_decQuad_t
+
+	result = C.mdq_from_double(C.double(value), context.set)
+
+	context.set = result.set
+	return DecQuad{val: result.val}
+}
+
+

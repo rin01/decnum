@@ -22,12 +22,12 @@
 
 void mdq_init(void);
 
-#define MAX_STRING_SIZE  50
+#define MAX_STRING_CAPACITY  50
 
 // struct used to pass strings from Go to C, by value.
 //
 typedef struct Strarray_t {
-  char arr[MAX_STRING_SIZE];
+  char arr[MAX_STRING_CAPACITY];
 } Strarray_t;
 
 // struct used to pass strings from C to Go, by value.
@@ -108,13 +108,15 @@ uint32_t         mdq_is_zero(decQuad a);
 Ret_decQuad_t    mdq_max(decQuad a, decQuad b, decContext set);
 Ret_decQuad_t    mdq_min(decQuad a, decQuad b, decContext set);
 
-Ret_int32_t      mdq_to_int32(decQuad a, decContext set, int round);
-Ret_int64_t      mdq_to_int64(decQuad a, decContext set, int round);
 Ret_str          mdq_to_QuadToString(decQuad a);
 Ret_BCD          mdq_to_BCD(decQuad a);
+Ret_int32_t      mdq_to_int32(decQuad a, decContext set, int round);
+Ret_int64_t      mdq_to_int64(decQuad a, decContext set, int round);
 
 Ret_decQuad_t    mdq_from_string(Strarray_t strarray, decContext set);
+Ret_decQuad_t    mdq_from_int32(int32_t value, decContext set);
 Ret_decQuad_t    mdq_from_int64(int64_t value, decContext set);
+Ret_decQuad_t    mdq_from_double(double value, decContext set);
 
 #endif
 

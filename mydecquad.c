@@ -2,26 +2,11 @@
 
 
 /************************************************************************/
-/*                                xmalloc                               */
-/************************************************************************/
-
-
-inline static void *xmalloc (size_t size) {
-  void *p;
-
-  p = malloc(size);
-  if ( p == NULL ) {
-    fprintf(stderr, "malloc(%d) failed\n", (int)size);
-    abort();
-  }
-
-  return p;
-}
-
-
-/************************************************************************/
 /*                          init and context                            */
 /************************************************************************/
+
+static decQuad g_one;  // contains 1
+
 
 /* initialize the global constants used by this library.
 
@@ -38,6 +23,10 @@ void mdq_init(void) {
 
   assert( DECQUAD_Pmax == 34 );             // we have 34 digits max precision.
   assert( DECQUAD_String > DECQUAD_Pmax );  // because Go function quad.AppendQuad()
+
+  // put 1 in g_one
+
+  decQuadFromInt32(&g_one, 1);
 
 }
 
@@ -108,7 +97,7 @@ decQuad mdq_nan() {
 
   decQuadFromString(&val, "Nan", &set);
 
-  //assert(set.status & DEC_Errors == 0); // a status is set
+  //assert(set.status & DEC_Errors == 0); // a status bit is set, because the Nan
 
   return val;
 }
@@ -291,13 +280,9 @@ Ret_uint32_t mdq_compare(decQuad a, decQuad b, decContext set) {
       return res;
   }
 
-  if ( decQuadIsNegative(&cmp_val) ) {
-      res.val = CMP_LESS;
-      return res;
-  }
+  assert( decQuadIsNegative(&cmp_val) );
 
-  assert(0); // never get here
-
+  res.val = CMP_LESS;
   return res;
 }
 
@@ -475,7 +460,6 @@ Ret_int32_t mdq_to_int32(decQuad a, decContext set, int round) {
 */
 Ret_int64_t mdq_to_int64(decQuad a, decContext set, int round) {
 
-  decQuad      zero;
   decQuad      a_integral;
   decQuad      a_integral_quantized;
   char         a_str[DECQUAD_String];
@@ -486,11 +470,9 @@ Ret_int64_t mdq_to_int64(decQuad a, decContext set, int round) {
 
   /* operation */
 
-  decQuadZero(&zero);
-
   decQuadToIntegralValue(&a_integral, &a, &set, round);
 
-  decQuadQuantize(&a_integral_quantized, &a_integral, &zero, &set); // because 1e3 remains 1e3
+  decQuadQuantize(&a_integral_quantized, &a_integral, &g_one, &set); // because else, 1e3 remains 1e3, and we want 1000
 
   if (set.status & DEC_Errors) {
     ret.set = set;
@@ -553,6 +535,21 @@ Ret_decQuad_t mdq_from_string(Strarray_t strarray, decContext set) {
 }
 
 
+/* conversion from int32.
+*/
+Ret_decQuad_t mdq_from_int32(int32_t value, decContext set) {
+
+  Ret_decQuad_t     res;
+
+  /* operation */
+
+  decQuadFromInt32(&res.val, value); // decQuadFromInt32 doesn't need context, but conversion from string or int64 need it, so I do the same for int32
+  res.set = set;
+
+  return res;
+}
+
+
 /* conversion from int64.
 */
 Ret_decQuad_t mdq_from_int64(int64_t value, decContext set) {
@@ -564,6 +561,26 @@ Ret_decQuad_t mdq_from_int64(int64_t value, decContext set) {
 
   sprintf(buff, "%lld", (long long int)value);
 
+  /* operation */
+
+  decQuadFromString(&res.val, buff, &set);            // raises an error if string is invalid
+  res.set = set;
+
+  return res;
+}
+
+
+/* conversion from double.
+*/
+Ret_decQuad_t mdq_from_double(double value, decContext set) {
+
+  char         buff[40]; // more than enough to store a double
+  Ret_decQuad_t     res;
+
+  /* write value into buffer */
+
+  sprintf(buff, "%.18e", value);
+  //printf("mdq_from_double: %s\n", buff);
 
   /* operation */
 
