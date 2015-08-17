@@ -4,7 +4,7 @@ Decimal data type is important for financial calculations.
 
 Godoc: https://godoc.org/github.com/rin01/decnum
 
-Example of use:
+Example of use
 
 	var (
 		ctx decnum.Context
@@ -13,7 +13,7 @@ Example of use:
 		r   decnum.Quad
 	)
 
-	ctx.InitDefaultQuad()           // initialize context with default settings for Quad operations. Essentially, it contains the rounding mode.
+	ctx.InitDefaultQuad()           // initialize context with default settings for Quad operations. Context contains the rounding mode and accumulates errors in its status field.
 
 	a = ctx.FromString("1234.5678") // convert string to Quad. If error, a status bit in ctx will be set.
 	b = ctx.FromString("-45.7")     //   Error bits in status can be tested with ctx.Error() at any time. Errors are cumulative, and only ctx.ResetStatus() will clear them.
@@ -28,6 +28,34 @@ Example of use:
 	if err := ctx.Error(); err != nil { // you can just check for after a series of operations have been done
 		log.Fatalf("ERROR OCCURRED !!!!!!!   %v\n", err)
 	}
+
+
+Number representation
+
+It is easier to work with this package if you keep in mind the following representation for numbers:
+
+         (-1)^sign  coefficient * 10^exponent
+         where coefficient is an integer storing 34 digits.
+
+         12.345678e2    is     12345678E-4
+         123e5          is          123E+5
+         0              is            0E+0
+         1              is            1E+0
+         1.00           is          100E+0
+         34.560         is        34560E-3
+
+This representation is important to grasp when using functions like ToIntegral, Quantize, IsInteger, etc.
+
+Note that when numbers are displayed, the functions that convert them to string use a different representation:
+
+         1234.567e-12       is      1.234567E-9
+         650e4              is          6.50E+6
+
+In the exponential notation used by ToString, etc, the coefficient is a fractional number with one digit before decimal point:
+
+         (-1)^sign  c.oefficient * 10^exp
+
+This representation is well suited for displaying numbers, but not to work with functions in this package.
 
 
 Tech note

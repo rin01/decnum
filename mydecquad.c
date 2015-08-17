@@ -376,6 +376,86 @@ Ret_decQuad_t mdq_min(decQuad a, decQuad b, decContext set) {
 
 
 /************************************************************************/
+/*                    conversion from string or numbers                 */
+/************************************************************************/
+
+
+/* conversion from string.
+*/
+Ret_decQuad_t mdq_from_string(Strarray_t strarray, decContext set) {
+
+  Ret_decQuad_t     res;
+
+  /* operation */
+
+  decQuadFromString(&res.val, strarray.arr, &set);
+  res.set = set;
+
+  return res;
+}
+
+
+/* conversion from int32.
+*/
+Ret_decQuad_t mdq_from_int32(int32_t value, decContext set) {
+
+  Ret_decQuad_t     res;
+
+  /* operation */
+
+  decQuadFromInt32(&res.val, value); // decQuadFromInt32 doesn't need context, but conversion from string or int64 need it, so I do the same for int32
+  res.set = set;
+
+  return res;
+}
+
+
+/* conversion from int64.
+*/
+Ret_decQuad_t mdq_from_int64(int64_t value, decContext set) {
+
+  char         buff[30]; // more than enough to store a int64     max val: 9,223,372,036,854,775,807
+  Ret_decQuad_t     res;
+
+  /* write value into buffer */
+
+  sprintf(buff, "%lld", (long long int)value);
+
+  /* operation */
+
+  decQuadFromString(&res.val, buff, &set);            // raises an error if string is invalid
+  res.set = set;
+
+  return res;
+}
+
+
+/* conversion from double.
+
+   DEPRECATED: FromFloat64 function has been removed, because it is impossible to know the desired precision of the result.
+               The user should convert float64 to string, with the desired precision, and pass it to FromString.
+
+*/
+Ret_decQuad_t mdq_from_double(double value, decContext set) {
+
+  char         buff[40]; // more than enough to store a double in the format specified by sprintf
+  Ret_decQuad_t     res;
+
+  /* write value into buffer */
+
+  sprintf(buff, "%.18e", value);
+  //printf("mdq_from_double: %s\n", buff);
+
+  /* operation */
+
+  decQuadFromString(&res.val, buff, &set);            // raises an error if string is invalid
+  res.set = set;
+
+  return res;
+}
+
+
+/************************************************************************/
 /*                        conversion to string                          */
 /************************************************************************/
 
@@ -472,9 +552,9 @@ Ret_int64_t mdq_to_int64(decQuad a, decContext set, int round) {
 
   /* operation */
 
-  decQuadToIntegralValue(&a_integral, &a, &set, round);
+  decQuadToIntegralValue(&a_integral, &a, &set, round); // rounds the number to an integral
 
-  decQuadQuantize(&a_integral_quantized, &a_integral, &static_one, &set); // because else, 1e3 remains 1e3, and we want 1000
+  decQuadQuantize(&a_integral_quantized, &a_integral, &static_one, &set); // e.g. change 1e3 to 1000
 
   if (set.status & DEC_Errors) {
     ret.set = set;
@@ -497,7 +577,7 @@ Ret_int64_t mdq_to_int64(decQuad a, decContext set, int round) {
   errno = 0;
   r_val = strtoll(a_str, &tailptr, 10);  // changes errno if error
 
-  if ( errno ) {
+  if ( errno ) { // in particular, if a_str is an integer that overflows int64
     decContextSetStatus(&set, DEC_Invalid_operation);
     ret.set = set;
     ret.val = 0;
@@ -514,82 +594,6 @@ Ret_int64_t mdq_to_int64(decQuad a, decContext set, int round) {
   ret.set = set;
   ret.val = r_val;
   return ret;
-}
-
-
-/************************************************************************/
-/*                    conversion from string or numbers                 */
-/************************************************************************/
-
-
-/* conversion from string.
-*/
-Ret_decQuad_t mdq_from_string(Strarray_t strarray, decContext set) {
-
-  Ret_decQuad_t     res;
-
-  /* operation */
-
-  decQuadFromString(&res.val, strarray.arr, &set);
-  res.set = set;
-
-  return res;
-}
-
-
-/* conversion from int32.
-*/
-Ret_decQuad_t mdq_from_int32(int32_t value, decContext set) {
-
-  Ret_decQuad_t     res;
-
-  /* operation */
-
-  decQuadFromInt32(&res.val, value); // decQuadFromInt32 doesn't need context, but conversion from string or int64 need it, so I do the same for int32
-  res.set = set;
-
-  return res;
-}
-
-
-/* conversion from int64.
-*/
-Ret_decQuad_t mdq_from_int64(int64_t value, decContext set) {
-
-  char         buff[30]; // more than enough to store a int64
-  Ret_decQuad_t     res;
-
-  /* write value into buffer */
-
-  sprintf(buff, "%lld", (long long int)value);
-
-  /* operation */
-
-  decQuadFromString(&res.val, buff, &set);            // raises an error if string is invalid
-  res.set = set;
-
-  return res;
-}
-
-
-/* conversion from double.
-*/
-Ret_decQuad_t mdq_from_double(double value, decContext set) {
-
-  char         buff[40]; // more than enough to store a double
-  Ret_decQuad_t     res;
-
-  /* write value into buffer */
-
-  sprintf(buff, "%.18e", value);
-  //printf("mdq_from_double: %s\n", buff);
-
-  /* operation */
-
-  decQuadFromString(&res.val, buff, &set);            // raises an error if string is invalid
-  res.set = set;
-
-  return res;
 }
 
 

@@ -189,5 +189,10 @@ func main() {
 fmt.Println(a.QuadToString())
 fmt.Println(a.String())
 
+		var rrr   decnum.Quad
+fmt.Println(rrr.QuadToString())
+fmt.Println(rrr.String())
+
+
 
 }

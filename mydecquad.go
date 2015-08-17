@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"math"
 )
 
 // Note: in the comment block for cgo above, if LDFLAGS is used, the path for LDFLAGS must be an "absolute" path.
@@ -25,6 +26,12 @@ import (
 func assert(val bool) {
 	if val == false {
 		panic("assertion failed")
+	}
+}
+
+func assert_sane(context *Context) {
+	if context.sane == false {
+		panic("context not initialized")
 	}
 }
 
@@ -132,6 +139,10 @@ func init() {
 	}
 
 	assert(C.DECSUBSET == 0) // because else, we should define Flag_Lost_digits as status flag
+
+	assert(POOL_BUFF_CAPACITY>DECQUAD_Pmax)
+	assert(POOL_BUFF_CAPACITY>DECQUAD_String)
+
 }
 
 // Version returns the version of the original C decNumber package.
@@ -234,6 +245,45 @@ func (status Status_t) String() string {
 	return s
 }
 
+type Round_mode_t int
+
+// Rounding mode is used if rounding is necessary during an operation.
+const (
+	ROUND_CEILING   Round_mode_t = C.DEC_ROUND_CEILING   // Round towards +Infinity.
+	ROUND_DOWN      Round_mode_t = C.DEC_ROUND_DOWN      // Round towards 0 (truncation).
+	ROUND_FLOOR     Round_mode_t = C.DEC_ROUND_FLOOR     // Round towards –Infinity.
+	ROUND_HALF_DOWN Round_mode_t = C.DEC_ROUND_HALF_DOWN // Round to nearest; if equidistant, round down.
+	ROUND_HALF_EVEN Round_mode_t = C.DEC_ROUND_HALF_EVEN // Round to nearest; if equidistant, round so that the final digit is even.
+	ROUND_HALF_UP   Round_mode_t = C.DEC_ROUND_HALF_UP   // Round to nearest; if equidistant, round up.
+	ROUND_UP        Round_mode_t = C.DEC_ROUND_UP        // Round away from 0.
+	ROUND_05UP      Round_mode_t = C.DEC_ROUND_05UP      // The same as DEC_ROUND_UP, except that rounding up only occurs if the digit to be rounded up is 0 or 5 and after Overflow the result is the same as for DEC_ROUND_DOWN.
+	ROUND_DEFAULT   Round_mode_t = ROUND_HALF_EVEN       // The same as DEC_ROUND_HALF_EVEN.
+)
+
+func (rounding Round_mode_t) String() string {
+
+	switch rounding {
+	case ROUND_CEILING:
+		return "ROUND_CEILING"
+	case ROUND_DOWN:
+		return "ROUND_DOWN"
+	case ROUND_FLOOR:
+		return "ROUND_FLOOR"
+	case ROUND_HALF_DOWN:
+		return "ROUND_HALF_DOWN"
+	case ROUND_HALF_EVEN:
+		return "ROUND_HALF_EVEN"
+	case ROUND_HALF_UP:
+		return "ROUND_HALF_UP"
+	case ROUND_UP:
+		return "ROUND_UP"
+	case ROUND_05UP:
+		return "ROUND_05UP"
+	default:
+		return "Unknown rounding mode"
+	}
+}
+
 // Context contains the rounding mode, and a status field that records exceptional conditions, some of which are considered as error, e.g. division by 0, underlow for operations like 1e-6000/1e1000, overflow, etc.
 // For decQuad usage, only these two fields are used.
 //
@@ -273,7 +323,7 @@ func (context *Context) InitDefaultQuad() {
 // Rounding returns the rounding mode of the context.
 //
 func (context *Context) Rounding() Round_mode_t {
-	assert(context.sane)
+	assert_sane(context)
 
 	return Round_mode_t(C.mdq_context_get_rounding(context.set))
 }
@@ -281,7 +331,7 @@ func (context *Context) Rounding() Round_mode_t {
 // SetRounding sets the rounding mode of the context.
 //
 func (context *Context) SetRounding(rounding Round_mode_t) {
-	assert(context.sane)
+	assert_sane(context)
 
 	context.set = C.mdq_context_set_rounding(context.set, C.int(rounding))
 }
@@ -297,7 +347,7 @@ func (context *Context) SetRounding(rounding Round_mode_t) {
 // It is easier to use the context.ErrorMask method to check for errors.
 //
 func (context *Context) Status() Status_t {
-	assert(context.sane)
+	assert_sane(context)
 
 	return Status_t(C.mdq_context_get_status(context.set))
 }
@@ -307,7 +357,7 @@ func (context *Context) Status() Status_t {
 // Normally, only library modules use this function. Applications have no reason to set status bits.
 //
 func (context *Context) SetStatus(flag Status_t) {
-	assert(context.sane)
+	assert_sane(context)
 
 	context.set = C.mdq_context_set_status(context.set, C.uint32_t(flag))
 }
@@ -316,7 +366,7 @@ func (context *Context) SetStatus(flag Status_t) {
 // You can continue to use this context for a new series of operations.
 //
 func (context *Context) ResetStatus() {
-	assert(context.sane)
+	assert_sane(context)
 
 	context.set = C.mdq_context_zero_status(context.set)
 }
@@ -339,7 +389,7 @@ func (context *Context) ResetStatus() {
 //
 func (context *Context) Error() error {
 	var status Status_t
-	assert(context.sane)
+	assert_sane(context)
 
 	status = context.Status()
 
@@ -357,45 +407,6 @@ func (context *Context) Error() error {
 /*                      arithmetic operations                           */
 /*                                                                      */
 /************************************************************************/
-
-type Round_mode_t int
-
-// Rounding mode is used if rounding is necessary during an operation.
-const (
-	ROUND_CEILING   Round_mode_t = C.DEC_ROUND_CEILING   // Round towards +Infinity.
-	ROUND_DOWN      Round_mode_t = C.DEC_ROUND_DOWN      // Round towards 0 (truncation).
-	ROUND_FLOOR     Round_mode_t = C.DEC_ROUND_FLOOR     // Round towards –Infinity.
-	ROUND_HALF_DOWN Round_mode_t = C.DEC_ROUND_HALF_DOWN // Round to nearest; if equidistant, round down.
-	ROUND_HALF_EVEN Round_mode_t = C.DEC_ROUND_HALF_EVEN // Round to nearest; if equidistant, round so that the final digit is even.
-	ROUND_HALF_UP   Round_mode_t = C.DEC_ROUND_HALF_UP   // Round to nearest; if equidistant, round up.
-	ROUND_UP        Round_mode_t = C.DEC_ROUND_UP        // Round away from 0.
-	ROUND_05UP      Round_mode_t = C.DEC_ROUND_05UP      // The same as DEC_ROUND_UP, except that rounding up only occurs if the digit to be rounded up is 0 or 5 and after Overflow the result is the same as for DEC_ROUND_DOWN.
-	ROUND_DEFAULT   Round_mode_t = ROUND_HALF_EVEN       // The same as DEC_ROUND_HALF_EVEN.
-)
-
-func (rounding Round_mode_t) String() string {
-
-	switch rounding {
-	case ROUND_CEILING:
-		return "ROUND_CEILING"
-	case ROUND_DOWN:
-		return "ROUND_DOWN"
-	case ROUND_FLOOR:
-		return "ROUND_FLOOR"
-	case ROUND_HALF_DOWN:
-		return "ROUND_HALF_DOWN"
-	case ROUND_HALF_EVEN:
-		return "ROUND_HALF_EVEN"
-	case ROUND_HALF_UP:
-		return "ROUND_HALF_UP"
-	case ROUND_UP:
-		return "ROUND_UP"
-	case ROUND_05UP:
-		return "ROUND_05UP"
-	default:
-		return "Unknown rounding mode"
-	}
-}
 
 type Cmp_t uint32 // result of Compare
 
@@ -464,7 +475,7 @@ func Copy(a Quad) (r Quad) {
 //
 func (context *Context) Minus(a Quad) (r Quad) {
 	var result C.Ret_decQuad_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_minus(a.val, context.set)
 
@@ -476,7 +487,7 @@ func (context *Context) Minus(a Quad) (r Quad) {
 //
 func (context *Context) Add(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_add(a.val, b.val, context.set)
 
@@ -488,7 +499,7 @@ func (context *Context) Add(a Quad, b Quad) (r Quad) {
 //
 func (context *Context) Subtract(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_subtract(a.val, b.val, context.set)
 
@@ -500,7 +511,7 @@ func (context *Context) Subtract(a Quad, b Quad) (r Quad) {
 //
 func (context *Context) Multiply(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_multiply(a.val, b.val, context.set)
 
@@ -512,7 +523,7 @@ func (context *Context) Multiply(a Quad, b Quad) (r Quad) {
 //
 func (context *Context) Divide(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_divide(a.val, b.val, context.set)
 
@@ -524,7 +535,7 @@ func (context *Context) Divide(a Quad, b Quad) (r Quad) {
 //
 func (context *Context) DivideInteger(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_divide_integer(a.val, b.val, context.set)
 
@@ -536,7 +547,7 @@ func (context *Context) DivideInteger(a Quad, b Quad) (r Quad) {
 //
 func (context *Context) Remainder(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_remainder(a.val, b.val, context.set)
 
@@ -548,7 +559,7 @@ func (context *Context) Remainder(a Quad, b Quad) (r Quad) {
 //
 func (context *Context) Abs(a Quad) (r Quad) {
 	var result C.Ret_decQuad_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_abs(a.val, context.set)
 
@@ -558,9 +569,21 @@ func (context *Context) Abs(a Quad) (r Quad) {
 
 // ToIntegral returns the value of a rounded to an integral value.
 //
+//      The representation of a number is:
+//
+//           (-1)^sign  coefficient * 10^exponent
+//           where coefficient is an integer storing 34 digits.
+//
+//         If exponent < 0, the least significant digits are discarded, so that new exponent becomes 0.
+//         If exponent >= 0, the number remains unchanged.
+//
+//         E.g.     12.345678e2    is     12345678E-4     -->   1235E0
+//
+//                  123e5          is     123E5        remains   123E5
+//
 func (context *Context) ToIntegral(a Quad, round Round_mode_t) (r Quad) {
 	var result C.Ret_decQuad_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_to_integral(a.val, context.set, C.int(round))
 
@@ -587,7 +610,7 @@ func (context *Context) ToIntegral(a Quad, round Round_mode_t) (r Quad) {
 //
 func (context *Context) Quantize(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_quantize(a.val, b.val, context.set)
 
@@ -612,7 +635,7 @@ func (context *Context) Quantize(a Quad, b Quad) (r Quad) {
 //
 func (context *Context) Compare(a Quad, b Quad) Cmp_t {
 	var result C.Ret_uint32_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_compare(a.val, b.val, context.set)
 
@@ -633,7 +656,7 @@ func (context *Context) Compare(a Quad, b Quad) Cmp_t {
 //
 func (context *Context) Cmp(a Quad, b Quad, comp_mask Cmp_t) bool {
 	var result C.Ret_uint32_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_compare(a.val, b.val, context.set)
 
@@ -649,7 +672,7 @@ func (context *Context) Cmp(a Quad, b Quad, comp_mask Cmp_t) bool {
 //
 func (context *Context) Greater(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_compare(a.val, b.val, context.set)
 
@@ -665,7 +688,7 @@ func (context *Context) Greater(a Quad, b Quad) bool {
 //
 func (context *Context) GreaterEqual(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_compare(a.val, b.val, context.set)
 
@@ -681,7 +704,7 @@ func (context *Context) GreaterEqual(a Quad, b Quad) bool {
 //
 func (context *Context) Equal(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_compare(a.val, b.val, context.set)
 
@@ -697,7 +720,7 @@ func (context *Context) Equal(a Quad, b Quad) bool {
 //
 func (context *Context) LessEqual(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_compare(a.val, b.val, context.set)
 
@@ -713,7 +736,7 @@ func (context *Context) LessEqual(a Quad, b Quad) bool {
 //
 func (context *Context) Less(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_compare(a.val, b.val, context.set)
 
@@ -738,13 +761,21 @@ func (a Quad) IsFinite() bool {
 
 // IsInteger returns true if a is finite and has exponent=0.
 //
-//      0          returns true
-//      1          returns true
-//      12.34e2    returns true
-//      0.0000     returns false
-//      1.0000     returns false
-//     -12.34e5    returns false
-//      1e3        returns false
+//      The number representation is:
+//
+//           (-1)^sign  coefficient * 10^exponent
+//           where coefficient is an integer storing 34 digits.
+//
+//      If the number in the above representation has exponent=0, then IsInteger returns true.
+//
+//      0              0E+0        returns true
+//      1              1E+0        returns true
+//      12.34e2     1234E+0        returns true
+//
+//      0.0000         0E-4        returns false
+//      1.0000     10000E-4        returns false
+//     -12.34e5    -1234E+3        returns false
+//      1e3            1E+3        returns false
 //
 func (a Quad) IsInteger() bool {
 
@@ -766,9 +797,9 @@ func (a Quad) IsInfinite() bool {
 	return false
 }
 
-// IsNan returns true if a is Nan.
+// IsNaN returns true if a is Nan.
 //
-func (a Quad) IsNan() bool {
+func (a Quad) IsNaN() bool {
 
 	if C.mdq_is_nan(a.val) != 0 {
 		return true
@@ -815,7 +846,7 @@ func (a Quad) IsNegative() bool {
 //
 func (context *Context) Max(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_max(a.val, b.val, context.set)
 
@@ -828,7 +859,7 @@ func (context *Context) Max(a Quad, b Quad) (r Quad) {
 //
 func (context *Context) Min(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_min(a.val, b.val, context.set)
 
@@ -838,22 +869,106 @@ func (context *Context) Min(a Quad, b Quad) (r Quad) {
 
 /************************************************************************/
 /*                                                                      */
+/*                   conversion from string and numbers                 */
+/*                                                                      */
+/************************************************************************/
+
+const MAX_STRING_CAPACITY = C.MAX_STRING_CAPACITY // string must be terminated by \0
+
+// FromString returns a Quad from a string.
+//
+func (context *Context) FromString(s string) (r Quad) {
+	var (
+		i        int
+		strarray C.Strarray_t
+		result   C.Ret_decQuad_t
+	)
+	assert_sane(context)
+
+	s = strings.TrimSpace(s)
+
+	if len(s) >= MAX_STRING_CAPACITY { // must be room for terminating \0
+		context.SetStatus(Flag_Conversion_syntax)
+		r = Nan()
+		return r
+	}
+
+	for i = 0; i < len(s); i++ {
+		strarray.arr[i] = C.char(s[i])
+	}
+
+	strarray.arr[i] = 0 // terminating 0
+
+	result = C.mdq_from_string(strarray, context.set)
+
+	context.set = result.set
+	return Quad{val: result.val}
+}
+
+// FromInt32 returns a Quad from a int32 value.
+//
+// No error should occur, and context status will not change.
+//
+func (context *Context) FromInt32(value int32) (r Quad) {
+	var result C.Ret_decQuad_t
+	assert_sane(context)
+
+	result = C.mdq_from_int32(C.int32_t(value), context.set)
+
+	context.set = result.set
+	return Quad{val: result.val}
+}
+
+// FromInt64 returns a Quad from a int64 value.
+//
+// No error should occur, and context status will not change.
+//
+func (context *Context) FromInt64(value int64) (r Quad) {
+	var result C.Ret_decQuad_t
+	assert_sane(context)
+
+	result = C.mdq_from_int64(C.int64_t(value), context.set)
+
+	context.set = result.set
+	return Quad{val: result.val}
+}
+
+// FromFloat64 returns a Quad from a int64 value.
+//
+//   DEPRECATED: FromFloat64 function has been removed, because it is impossible to know the desired precision of the result.
+//               The user should convert float64 to string, with the desired precision, and pass it to FromString.
+//
+//func (context *Context) FromFloat64(value float64) (r Quad) {
+//	var result C.Ret_decQuad_t
+//	assert_sane(context)
+//
+//	result = C.mdq_from_double(C.double(value), context.set)
+//
+//	context.set = result.set
+//	return Quad{val: result.val}
+//}
+
+/************************************************************************/
+/*                                                                      */
 /*                      conversion to string                            */
 /*                                                                      */
 /************************************************************************/
 
+const POOL_BUFF_CAPACITY = 50 // capacity of []byte buffer generated by the pool of buffers
+
 // pool is a pool of byte slice, used by AppendQuad and String.
 //
 // note:
-//    DECQUAD_String = 43
-//    DECQUAD_Pmax   = 34
+//    DECQUAD_String     = 43         sign, 34 digits, decimal point, E+xxxx, terminal \0   gives 43
+//    DECQUAD_Pmax       = 34
+//    POOL_BUFF_CAPACITY = 50         just to be sure, it is largely enough
 //
-// The pool must return []byte with capacity being the largest of DECQUAD_String and DECQUAD_Pmax.
+// The pool must return []byte with capacity being at least the largest of DECQUAD_String and DECQUAD_Pmax. We Prefer a capacity of POOL_BUFF_CAPACITY to be sure.
 //
 var pool = sync.Pool{
 	New: func() interface{} {
 		//fmt.Println("---   POOL")
-		return make([]byte, DECQUAD_String) // largest of DECQUAD_String and DECQUAD_Pmax. This size is ok for AppendQuad and String methods.
+		return make([]byte, POOL_BUFF_CAPACITY) // POOL_BUFF_CAPACITY is larger than DECQUAD_String and DECQUAD_Pmax. This size is ok for AppendQuad and String methods.
 	},
 }
 
@@ -890,21 +1005,21 @@ func (a Quad) QuadToString() string {
 	var (
 		ret_str   C.Ret_str
 		str_slice []byte // capacity must be exactly DECQUAD_String
-		s string
+		s         string
 	)
 
-		ret_str = C.mdq_to_QuadToString(a.val) // may use exponent notation
+	ret_str = C.mdq_to_QuadToString(a.val) // may use exponent notation
 
-		str_slice = pool.Get().([]byte)[:DECQUAD_String]
-		defer pool.Put(str_slice)
+	str_slice = pool.Get().([]byte)[:DECQUAD_String]
+	defer pool.Put(str_slice)
 
-		for i := 0; i < int(ret_str.length); i++ {
-			str_slice[i] = byte(ret_str.s[i])
-		}
+	for i := 0; i < int(ret_str.length); i++ {
+		str_slice[i] = byte(ret_str.s[i])
+	}
 
-		s = string(str_slice[:ret_str.length])
+	s = string(str_slice[:ret_str.length])
 
-		return s
+	return s
 }
 
 // AppendQuad appends string representation of decQuad into byte slice.
@@ -1035,7 +1150,7 @@ func (a Quad) String() string {
 //
 func (context *Context) ToInt32(a Quad, round Round_mode_t) int32 {
 	var result C.Ret_int32_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_to_int32(a.val, context.set, C.int(round))
 
@@ -1048,7 +1163,7 @@ func (context *Context) ToInt32(a Quad, round Round_mode_t) int32 {
 //
 func (context *Context) ToInt64(a Quad, round Round_mode_t) int64 {
 	var result C.Ret_int64_t
-	assert(context.sane)
+	assert_sane(context)
 
 	result = C.mdq_to_int64(a.val, context.set, C.int(round))
 
@@ -1064,88 +1179,19 @@ func (context *Context) ToFloat64(a Quad) float64 {
 		s   string
 		val float64
 	)
-	assert(context.sane)
+	assert_sane(context)
+
+	if a.IsNaN() { // because strconv.ParseFloat doesn't parse signaling sNaN
+		return math.NaN()
+	}
 
 	s = a.String()
 
 	if val, err = strconv.ParseFloat(s, 64); err != nil {
 		context.SetStatus(Flag_Conversion_syntax)
-		return 0
+		return math.NaN()
 	}
 
 	return val
 }
 
-/************************************************************************/
-/*                                                                      */
-/*                   conversion from string and numbers                 */
-/*                                                                      */
-/************************************************************************/
-
-const MAX_STRING_CAPACITY = C.MAX_STRING_CAPACITY // string must be terminated by \0
-
-// FromString returns a Quad from a string.
-//
-func (context *Context) FromString(s string) (r Quad) {
-	var (
-		i        int
-		strarray C.Strarray_t
-		result   C.Ret_decQuad_t
-	)
-	assert(context.sane)
-
-	s = strings.TrimSpace(s)
-
-	if len(s) >= MAX_STRING_CAPACITY { // must be room for terminating \0
-		context.SetStatus(Flag_Conversion_syntax)
-		r = Nan()
-		return r
-	}
-
-	for i = 0; i < len(s); i++ {
-		strarray.arr[i] = C.char(s[i])
-	}
-
-	strarray.arr[i] = 0 // terminating 0
-
-	result = C.mdq_from_string(strarray, context.set)
-
-	context.set = result.set
-	return Quad{val: result.val}
-}
-
-// FromInt32 returns a Quad from a int32 value.
-//
-func (context *Context) FromInt32(value int32) (r Quad) {
-	var result C.Ret_decQuad_t
-	assert(context.sane)
-
-	result = C.mdq_from_int32(C.int32_t(value), context.set)
-
-	context.set = result.set
-	return Quad{val: result.val}
-}
-
-// FromInt64 returns a Quad from a int64 value.
-//
-func (context *Context) FromInt64(value int64) (r Quad) {
-	var result C.Ret_decQuad_t
-	assert(context.sane)
-
-	result = C.mdq_from_int64(C.int64_t(value), context.set)
-
-	context.set = result.set
-	return Quad{val: result.val}
-}
-
-// FromFloat64 returns a Quad from a int64 value.
-//
-func (context *Context) FromFloat64(value float64) (r Quad) {
-	var result C.Ret_decQuad_t
-	assert(context.sane)
-
-	result = C.mdq_from_double(C.double(value), context.set)
-
-	context.set = result.set
-	return Quad{val: result.val}
-}
