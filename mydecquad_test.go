@@ -225,9 +225,10 @@ func Test_operations(t *testing.T) {
 		T_FROMSTRING     Operation_t = "FromString"
 		T_FROMINT32      Operation_t = "FromInt32"
 		T_FROMINT64      Operation_t = "FromInt64"
-
-		T_TOINT32      Operation_t = "ToInt32"
-		T_TOINT64      Operation_t = "ToInt64"
+		T_QUADTOSTRING   Operation_t = "QuadToString"
+		T_STRING         Operation_t = "String"
+		T_TOINT32        Operation_t = "ToInt32"
+		T_TOINT64        Operation_t = "ToInt64"
 		T_TOFLOAT64      Operation_t = "ToFloat64"
 	)
 
@@ -419,6 +420,8 @@ func Test_operations(t *testing.T) {
 		{T_TOINTEGRAL, "Inf", "ROUND_HALF_EVEN", "Infinity", false},
 		{T_TOINTEGRAL, "-Inf", "ROUND_HALF_EVEN", "-Infinity", false},
 		{T_TOINTEGRAL, "12e3", "ROUND_HALF_EVEN", "1.2E+4", false},
+		{T_TOINTEGRAL, "12e-3", "ROUND_HALF_EVEN", "0", false},
+		{T_TOINTEGRAL, "12e-103", "ROUND_HALF_EVEN", "0", false},
 
 		{T_TOINTEGRAL, "13256748.9879878", "ROUND_UP", "13256749", false},
 		{T_TOINTEGRAL, "13256748.1879878", "ROUND_UP", "13256749", false},
@@ -453,7 +456,6 @@ func Test_operations(t *testing.T) {
 		{T_TOINTEGRAL, "1234567890123456789012345678901234", "ROUND_HALF_EVEN", "1234567890123456789012345678901234", false},
 		{T_TOINTEGRAL, "12345678901234567890123456789012341", "ROUND_HALF_EVEN", "1.234567890123456789012345678901234E+34", false},
 
-
 		{T_QUANTIZE, "sNaN", "1", "NaN", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_QUANTIZE, "NaN", "NaN", "NaN", false},
 		{T_QUANTIZE, "NaN", "123", "NaN", false},
@@ -474,6 +476,10 @@ func Test_operations(t *testing.T) {
 		{T_QUANTIZE, "123.132456784", "1.", "123", false},
 		{T_QUANTIZE, "123.1230", "1e2", "1E+2", false},
 		{T_QUANTIZE, "12345.1230", "1e2", "1.23E+4", false},
+		{T_QUANTIZE, "123e31", "1", "1230000000000000000000000000000000", false},
+		{T_QUANTIZE, "123e32", "1", "NaN", true}, // Invalid_operation
+		{T_QUANTIZE, "123e32", "1E1", "1.230000000000000000000000000000000E+34", false},
+		{T_QUANTIZE, "123e32", "10", "NaN", true}, // Invalid_operation
 
 		{T_COMPARE, "sNaN", "1", "CMP_NAN", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_COMPARE, "NaN", "NaN", "CMP_NAN", false},
@@ -768,10 +774,9 @@ func Test_operations(t *testing.T) {
 		{T_FROMINT64, "32767", "", "32767", false},
 		{T_FROMINT64, "32768", "", "32768", false},
 
-
 		{T_TOINT32, "sNan", "ROUND_HALF_UP", "0", true}, // Invalid_operation
-		{T_TOINT32, "Nan", "ROUND_HALF_UP", "0", true}, // Invalid_operation
-		{T_TOINT32, "Inf", "ROUND_HALF_UP", "0", true}, // Invalid_operation
+		{T_TOINT32, "Nan", "ROUND_HALF_UP", "0", true},  // Invalid_operation
+		{T_TOINT32, "Inf", "ROUND_HALF_UP", "0", true},  // Invalid_operation
 		{T_TOINT32, "2147483647", "ROUND_HALF_UP", "2147483647", false},
 		{T_TOINT32, "2147483647.1", "ROUND_HALF_UP", "2147483647", false},
 		{T_TOINT32, "2147483647.49999999999", "ROUND_HALF_UP", "2147483647", false},
@@ -787,8 +792,8 @@ func Test_operations(t *testing.T) {
 		{T_TOINT32, "-2147483648.5", "ROUND_HALF_DOWN", "-2147483648", false},
 
 		{T_TOINT64, "sNan", "ROUND_HALF_UP", "0", true}, // Invalid_operation
-		{T_TOINT64, "Nan", "ROUND_HALF_UP", "0", true}, // Invalid_operation
-		{T_TOINT64, "Inf", "ROUND_HALF_UP", "0", true}, // Invalid_operation
+		{T_TOINT64, "Nan", "ROUND_HALF_UP", "0", true},  // Invalid_operation
+		{T_TOINT64, "Inf", "ROUND_HALF_UP", "0", true},  // Invalid_operation
 		{T_TOINT64, "9223372036854775807", "ROUND_HALF_UP", "9223372036854775807", false},
 		{T_TOINT64, "9223372036854775807.1", "ROUND_HALF_UP", "9223372036854775807", false},
 		{T_TOINT64, "9223372036854775807.49999999999", "ROUND_HALF_UP", "9223372036854775807", false},
@@ -812,6 +817,67 @@ func Test_operations(t *testing.T) {
 		{T_TOFLOAT64, "12.345e8", "", "1234500000.000000", false},
 		{T_TOFLOAT64, "1.23e2000", "", "NaN", true}, // Conversion_syntax, because float64 doen's support exponent this large
 
+		{T_QUADTOSTRING, "sNan", "", "sNaN", false},
+		{T_QUADTOSTRING, "sNan123", "", "sNaN123", false},
+		{T_QUADTOSTRING, "Nan", "", "NaN", false},
+		{T_QUADTOSTRING, "Nan123", "", "NaN123", false},
+		{T_QUADTOSTRING, "Inf", "", "Infinity", false},
+		{T_QUADTOSTRING, "-Inf", "", "-Infinity", false},
+		{T_QUADTOSTRING, "0", "", "0", false},
+		{T_QUADTOSTRING, "28799.234235", "", "28799.234235", false},
+		{T_QUADTOSTRING, "28799.234235e1000", "", "2.8799234235E+1004", false},
+		{T_QUADTOSTRING, "0", "", "0", false},
+		{T_QUADTOSTRING, "0.0000001", "", "1E-7", false},
+		{T_QUADTOSTRING, "-123786954.4695460934e-5", "", "-1237.869544695460934", false},
+		{T_QUADTOSTRING, maxquad, "", maxquad, false},
+		{T_QUADTOSTRING, minquad, "", minquad, false},
+		{T_QUADTOSTRING, smallquad, "", smallquad, false},
+		{T_QUADTOSTRING, nsmallquad, "", nsmallquad, false},
+		{T_QUADTOSTRING, "1234567890123456789012345678901234", "", "1234567890123456789012345678901234", false},
+		{T_QUADTOSTRING, "12345678901234567890123.45678901234", "", "12345678901234567890123.45678901234", false},
+		{T_QUADTOSTRING, "1.234567890123456789012345678901234", "", "1.234567890123456789012345678901234", false},
+		{T_QUADTOSTRING, ".1234567890123456789012345678901234", "", "0.1234567890123456789012345678901234", false},
+		{T_QUADTOSTRING, ".01234567890123456789012345678901234", "", "0.01234567890123456789012345678901234", false},
+		{T_QUADTOSTRING, "1234567890123456", "", "1234567890123456", false},
+		{T_QUADTOSTRING, "1234567890123456e6", "", "1.234567890123456E+21", false},
+		{T_QUADTOSTRING, "1234567890.0000000", "", "1234567890.0000000", false},
+		{T_QUADTOSTRING, "0.0000000123456789000000000000000000", "", "1.23456789000000000000000000E-8", false},
+		{T_QUADTOSTRING, "1e-34", "", "1E-34", false},
+		{T_QUADTOSTRING, "1.7465e-34", "", "1.7465E-34", false},
+		{T_QUADTOSTRING, "12.3e5", "", "1.23E+6", false},
+		{T_QUADTOSTRING, "123836700e-5", "", "1238.36700", false},
+		{T_QUADTOSTRING, "0.0000000000", "", "0E-10", false},
+
+		{T_STRING, "sNan", "", "sNaN", false},
+		{T_STRING, "sNan123", "", "sNaN123", false},
+		{T_STRING, "Nan", "", "NaN", false},
+		{T_STRING, "Nan123", "", "NaN123", false},
+		{T_STRING, "Inf", "", "Infinity", false},
+		{T_STRING, "-Inf", "", "-Infinity", false},
+		{T_STRING, "0", "", "0", false},
+		{T_STRING, "28799.234235", "", "28799.234235", false},
+		{T_STRING, "28799.234235e1000", "", "2.8799234235E+1004", false},
+		{T_STRING, "0", "", "0", false},
+		{T_STRING, "0.0000001", "", "0.0000001", false}, // different than QuadToString
+		{T_STRING, "-123786954.4695460934e-5", "", "-1237.869544695460934", false},
+		{T_STRING, maxquad, "", maxquad, false},
+		{T_STRING, minquad, "", minquad, false},
+		{T_STRING, smallquad, "", smallquad, false},
+		{T_STRING, nsmallquad, "", nsmallquad, false},
+		{T_STRING, "1234567890123456789012345678901234", "", "1234567890123456789012345678901234", false},
+		{T_STRING, "12345678901234567890123.45678901234", "", "12345678901234567890123.45678901234", false},
+		{T_STRING, "1.234567890123456789012345678901234", "", "1.234567890123456789012345678901234", false},
+		{T_STRING, ".1234567890123456789012345678901234", "", "0.1234567890123456789012345678901234", false},
+		{T_STRING, ".01234567890123456789012345678901234", "", "0.01234567890123456789012345678901234", false},
+		{T_STRING, "1234567890123456", "", "1234567890123456", false},
+		{T_STRING, "1234567890123456e6", "", "1.234567890123456E+21", false},
+		{T_STRING, "1234567890.0000000", "", "1234567890.0000000", false},
+		{T_STRING, "0.0000000123456789000000000000000000", "", "0.0000000123456789000000000000000000", false}, // different than QuadToString
+		{T_STRING, "1e-34", "", "0.0000000000000000000000000000000001", false},                                // different than QuadToString
+		{T_STRING, "1.7465e-34", "", "1.7465E-34", false},
+		{T_STRING, "12.3e5", "", "1.23E+6", false},
+		{T_STRING, "123836700e-5", "", "1238.36700", false},
+		{T_STRING, "0.0000000000", "", "0.0000000000", false},
 	}
 
 	ctx.InitDefaultQuad()
@@ -941,6 +1007,12 @@ func Test_operations(t *testing.T) {
 		case T_FROMINT64:
 			result = ctx.FromInt64(must_int64(sp.a))
 			output = result.String()
+
+		case T_QUADTOSTRING:
+			output = must_quad(sp.a).QuadToString()
+
+		case T_STRING:
+			output = must_quad(sp.a).String()
 
 		case T_TOINT32:
 			result_int32 := ctx.ToInt32(must_quad(sp.a), must_rounding(sp.b))

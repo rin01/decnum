@@ -31,8 +31,8 @@ func main() {
 		log.Fatal("2 numbers are required as argument")
 	}
 
-	fmt.Println(decnum.Version())
-	fmt.Println(decnum.DecQuad_module_MACROS) // just for info about the macros defined in C decQuad module
+	fmt.Println(decnum.DecNumber_C_Version())
+	fmt.Println(decnum.DecNumber_C_MACROS()) // just for info about the macros defined in C decQuad module
 
 	//========================= division a/b ==================================
 
@@ -68,7 +68,7 @@ func main() {
 	// you can put other operations here, you will check for error after the series of operations
 	// ...
 
-	fmt.Println("r", r)
+	fmt.Println("r = a/b; r = ", r)
 
 	status := ctx.Status()
 	fmt.Printf("status: %s\n", status)
@@ -117,7 +117,7 @@ func main() {
 		log.Fatalf("ERROR OCCURED !!!!!!!   %v\n", err)
 	}
 
-	fmt.Printf("comparison of %s and %s is %d\n", a, b, comp)
+	fmt.Printf("comparison of %s and %s is %s\n", a, b, comp)
 
 	//============================ quantize 'a' with pattern 'b' ================================
 
@@ -150,7 +150,7 @@ func main() {
 	var h decnum.Quad = decnum.Zero()
 	var hh decnum.Quad = ctx.FromInt32(1000000000)
 
-	for i:=0; i<50; i++ {
+	for i := 0; i < 7; i++ {
 		h = ctx.Add(h, hh)
 		fmt.Printf("%d   %s\n", i, h)
 	}
@@ -162,37 +162,29 @@ func main() {
 	//============================ rounding ================================
 
 	fmt.Println("")
-	fmt.Println("========= rounding ==========")
+	fmt.Println("========= rounding (quantizing) ==========")
 
 	ctx.ResetStatus() // clear the status
 
-	var g decnum.Quad = ctx.FromString("123.7")
 	var g_up decnum.Quad
 	var g_down decnum.Quad
 
-
 	ctx.SetRounding(decnum.ROUND_UP)
 	assert(ctx.Rounding() == decnum.ROUND_UP)
-	g_up = ctx.Quantize(g, decnum.One())
+	g_up = ctx.Quantize(a, decnum.One())
 
 	ctx.SetRounding(decnum.ROUND_DOWN)
 	assert(ctx.Rounding() == decnum.ROUND_DOWN)
-	g_down = ctx.Quantize(g, decnum.One())
+	g_down = ctx.Quantize(a, decnum.One())
 
 	ctx.SetRounding(decnum.ROUND_DEFAULT)
 	assert(ctx.Rounding() == decnum.ROUND_HALF_EVEN)
 
-	fmt.Printf("%s rounded up   is %s\n", g, g_up)
-	fmt.Printf("%s rounded down is %s\n", g, g_down)
+	if err := ctx.Error(); err != nil {
+		log.Printf("ERROR OCCURED !!!!!!!   %v\n", err)
+	}
 
-
-fmt.Println(a.QuadToString())
-fmt.Println(a.String())
-
-		var rrr   decnum.Quad
-fmt.Println(rrr.QuadToString())
-fmt.Println(rrr.String())
-
-
+	fmt.Printf("%s rounded up   is %s\n", a, g_up)
+	fmt.Printf("%s rounded down is %s\n", a, g_down)
 
 }

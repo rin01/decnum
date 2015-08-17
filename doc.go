@@ -4,6 +4,7 @@ Decimal data type is important for financial calculations.
 
 Godoc: https://godoc.org/github.com/rin01/decnum
 
+
 Example of use
 
 	var (
@@ -30,7 +31,7 @@ Example of use
 	}
 
 
-Number representation
+Internal representation of numbers
 
 It is easier to work with this package if you keep in mind the following representation for numbers:
 
@@ -46,16 +47,24 @@ It is easier to work with this package if you keep in mind the following represe
 
 This representation is important to grasp when using functions like ToIntegral, Quantize, IsInteger, etc.
 
-Note that when numbers are displayed, the functions that convert them to string use a different representation:
 
-         1234.567e-12       is      1.234567E-9
-         650e4              is          6.50E+6
+Represention of numbers for display
 
-In the exponential notation used by ToString, etc, the coefficient is a fractional number with one digit before decimal point:
+When numbers are displayed, the functions that convert them to string like ToString use a different format:
 
          (-1)^sign  c.oefficient * 10^exp
+         where c.oefficient is a fractional number with one digit before fractional point
 
-This representation is well suited for displaying numbers, but not to work with functions in this package.
+         1234.567e-12       is printed as     1.234567E-9
+         650e4              is printed as         6.50E+6
+
+This representation is well suited for displaying numbers, but not to work with other functions in this package.
+
+
+Test
+
+The functions in this library have been all tested in the file https://github.com/rin01/decnum/blob/master/mydecquad_test.go.
+It contains a lot of interesting cases.
 
 
 Tech note

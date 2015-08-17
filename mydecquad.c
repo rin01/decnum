@@ -465,7 +465,7 @@ Ret_decQuad_t mdq_from_double(double value, decContext set) {
    A terminating 0 is written in the array.
    Never fails.
 
-   The function decQuadToString() uses exponential notation if number < 1 and too many 0 after decimal point.
+   The function decQuadToString() uses exponential notation too often in my opinion. E.g. 0.0000001 returns "1E-7".
 */
 Ret_str mdq_to_QuadToString(decQuad a) {
 
@@ -552,9 +552,9 @@ Ret_int64_t mdq_to_int64(decQuad a, decContext set, int round) {
 
   /* operation */
 
-  decQuadToIntegralValue(&a_integral, &a, &set, round); // rounds the number to an integral
+  decQuadToIntegralValue(&a_integral, &a, &set, round); // rounds the number to an integral. Only numbers with exponent<0 are rounded and shifted so that exponent becomes 0.
 
-  decQuadQuantize(&a_integral_quantized, &a_integral, &static_one, &set); // e.g. change 1e3 to 1000
+  decQuadQuantize(&a_integral_quantized, &a_integral, &static_one, &set); // for numbers with exponent>0. E.g. change 1e3 to 1000
 
   if (set.status & DEC_Errors) {
     ret.set = set;
@@ -569,7 +569,7 @@ Ret_int64_t mdq_to_int64(decQuad a, decContext set, int round) {
     return ret;
   }
 
-  assert(decQuadGetExponent(&a_integral_quantized) == 0);
+  assert(decQuadGetExponent(&a_integral_quantized) == 0); // in the absence of decQuadQuantize error, the exponent of the result is always equal to that of the model 'static_one'
 
   decQuadToString(&a_integral_quantized, a_str);  // never raises error. Exponential notation never occurs for integral, which allows strtoll() to parse the number.
   //printf("xxxxxxxxxxxxxx  %s\n", a_str);

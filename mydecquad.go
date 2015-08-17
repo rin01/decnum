@@ -9,10 +9,10 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"sync"
-	"math"
 )
 
 // Note: in the comment block for cgo above, if LDFLAGS is used, the path for LDFLAGS must be an "absolute" path.
@@ -125,10 +125,10 @@ func quad_for_varinit(s string) (r Quad) {
 /************************************************************************/
 
 var (
-	DecNumber_version string = C.GoString(C.decQuadVersion()) // version of the original C decNumber package
+	decNumber_C_version string = C.GoString(C.decQuadVersion()) // version of the original C decNumber package
 
-	DecQuad_module_MACROS string = fmt.Sprintf("decQuad module: DECDPUN %d, DECSUBSET %d, DECEXTFLAG %d. Constants DECQUAD_Pmax %d, DECQUAD_String %d DECQUAD_Bytes %d.",
-		C.DECDPUN, C.DECSUBSET, C.DECEXTFLAG, C.DECQUAD_Pmax, C.DECQUAD_String, C.DECQUAD_Bytes) // macros defined by the C decQuad module
+	decNumber_C_MACROS string = fmt.Sprintf("decQuad module: DECDPUN %d, DECSUBSET %d, DECEXTFLAG %d. Constants DECQUAD_Pmax %d, DECQUAD_String %d DECQUAD_Bytes %d.",
+		C.DECDPUN, C.DECSUBSET, C.DECEXTFLAG, C.DECQUAD_Pmax, C.DECQUAD_String, C.DECQUAD_Bytes) // macros defined by the C decNumber module
 )
 
 func init() {
@@ -140,16 +140,23 @@ func init() {
 
 	assert(C.DECSUBSET == 0) // because else, we should define Flag_Lost_digits as status flag
 
-	assert(POOL_BUFF_CAPACITY>DECQUAD_Pmax)
-	assert(POOL_BUFF_CAPACITY>DECQUAD_String)
+	assert(POOL_BUFF_CAPACITY > DECQUAD_Pmax)
+	assert(POOL_BUFF_CAPACITY > DECQUAD_String)
 
 }
 
-// Version returns the version of the original C decNumber package.
+// DecNumber_C_Version returns the version of the original C decNumber package.
 //
-func Version() string {
+func DecNumber_C_Version() string {
 
-	return DecNumber_version
+	return decNumber_C_version
+}
+
+// DecNumber_C_MACROS returns the values of macros defined in the original C decNumber package.
+//
+func DecNumber_C_MACROS() string {
+
+	return decNumber_C_MACROS
 }
 
 /************************************************************************/
@@ -578,8 +585,9 @@ func (context *Context) Abs(a Quad) (r Quad) {
 //         If exponent >= 0, the number remains unchanged.
 //
 //         E.g.     12.345678e2    is     12345678E-4     -->   1235E0
-//
 //                  123e5          is     123E5        remains   123E5
+//
+// ToIntegral is like Quantize(a, 1E0), but rounding mode can be specified.
 //
 func (context *Context) ToIntegral(a Quad, round Round_mode_t) (r Quad) {
 	var result C.Ret_decQuad_t
@@ -592,11 +600,16 @@ func (context *Context) ToIntegral(a Quad, round Round_mode_t) (r Quad) {
 }
 
 // Quantize rounds a to the same pattern as b.
-// b is just a model, its value is not used.
+// b is just a model, its sign and coefficient value are ignored. Only its exponent is used.
 // The result is the value of a, but with the same exponent as the pattern b.
 // The rounding of the context is used.
 //
 // You can use this function with the proper rounding to round (e.g. set context rounding mode to ROUND_HALF_EVEN) or truncate (ROUND_DOWN) 'a'.
+//
+//      The representation of a number is:
+//
+//           (-1)^sign  coefficient * 10^exponent
+//           where coefficient is an integer storing 34 digits.
 //
 // Examples:
 //    quantization of 134.6454 with    0.00001    is   134.64540
@@ -607,6 +620,10 @@ func (context *Context) ToIntegral(a Quad, round Round_mode_t) (r Quad) {
 //                    134.6454 with 1             is   135
 //                    134.6454 with 1000000000    is   135           the value of b has no importance
 //                    134.6454 with 1E+2          is   1E+2
+//
+//		        123e32 with 1             sets Invalid_operation error flag in status
+//		        123e32 with 1E1           is   1230000000000000000000000000000000E1
+//		        123e32 with 10            sets Invalid_operation error flag in status
 //
 func (context *Context) Quantize(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
@@ -972,34 +989,14 @@ var pool = sync.Pool{
 	},
 }
 
-// QuadToString returns the string representation of a decQuad number.
+// QuadToString returns the string representation of a Quad number.
 // It calls the C function QuadToString of the original decNumber package.
 //
 //       This function uses exponential notation quite often.
 //       E.g. 0.0000001 returns "1E-7", which is often not what we want.
 //
-//       It is better to use the method AppendQuad() or String(), which don't use exponential notation when it is avoidable for number in range ]-1; 1[.
-//
-//       input string                              a.QuadToString()                            a.String()
-//
-//       1                                         1                                           1
-//       0.1                                       0.1                                         0.1
-//       1e-2                                      0.01                                        0.01
-//       0.000001                                  0.000001                                    0.000001
-//       0.0000001                                 1E-7                                        0.0000001
-//       0.0000000000000000000000000000000001      1E-34                                       0.0000000000000000000000000000000001
-//       0.00000000000000000000000000000000001     1E-35                                       1E-35
-//       0.000000000123400000000                   1.23400000000E-10                           0.000000000123400000000
-//       0.0000000000000000000000123400000000      1.23400000000E-23                           0.0000000000000000000000123400000000
-//       0.00000000000000000000000123400000000     1.23400000000E-24                           1.23400000000E-24
-//       12340                                     12340                                       12340
-//       1234000000000000000000000000000000        1234000000000000000000000000000000          1234000000000000000000000000000000
-//       12340000000000000000000000000000000       1.234000000000000000000000000000000E+34     1.234000000000000000000000000000000E+34
-//       12340e3                                   1.2340E+7                                   1.2340E+7
-//       12345678901234567890.12345678901234       12345678901234567890.12345678901234         12345678901234567890.12345678901234
-//       1234567890123456789012345678901234        1234567890123456789012345678901234          1234567890123456789012345678901234
-//
-//       String() writes a number in range ]-1; 1[ without exp notation if all its significant digits can be written in the pattern     0.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+//       It is better to use the method AppendQuad() or String(), which don't use exponential notation for a wider range.
+//       AppendQuad() and String() write a number without exp notation if it can be displayed with at most 34 digits, and an optional fractional point.
 //
 func (a Quad) QuadToString() string {
 	var (
@@ -1022,19 +1019,18 @@ func (a Quad) QuadToString() string {
 	return s
 }
 
-// AppendQuad appends string representation of decQuad into byte slice.
-// This representation is the best to display decQuad, because it shows all numbers having exponent between 0 and -34 (DECQUAD_Pmax), that is, all 34 significant digits, without using exponent notation.
+// AppendQuad appends string representation of Quad into byte slice.
+// AppendQuad and String are best to display Quad, as exponent notation is used less often than with QuadToString.
 //
-// All digits of the coefficient are displayed, e.g. 12344567890.123456789000000000000000
-// If the number must have an exponent because it is too large or too small, we can have    1.4E+201     0E-6176    Infinity
-// If the number has an internal positive exponent, like 33e4, it will be displayed as 3.3E+5, though. But 33.1234e4 is displayed as 331234.
+//       AppendQuad() writes a number without exp notation if it can be displayed with at most 34 digits, and an optional fractional point.
+//       Else, falls back on QuadToString(), which will use exponential notation.
 //
-// Method String() calls AppendQuad internally.
+// See also method String(), which calls AppendQuad internally.
 //
 func AppendQuad(dst []byte, a Quad) []byte {
 	var (
 		ret_str   C.Ret_str
-		str_slice []byte // capacity must be exactly DECQUAD_String
+		str_slice []byte // length must be exactly DECQUAD_String
 
 		ret               C.Ret_BCD
 		d                 byte
@@ -1042,9 +1038,9 @@ func AppendQuad(dst []byte, a Quad) []byte {
 		inf_nan           uint32
 		exp               int32
 		sign              uint32
-		BCD_slice         []byte // capacity must be exactly DECQUAD_Pmax
+		BCD_slice         []byte // length must be exactly DECQUAD_Pmax
 
-		buff [DECQUAD_String]byte // array size is max of DECQUAD_String and DECQUAD_Pmax. DECQUAD_String is larger.
+		buff [DECQUAD_String]byte // enough for      sign    optional "0."    34 digits
 	)
 
 	// fill BCD array
@@ -1061,7 +1057,7 @@ func AppendQuad(dst []byte, a Quad) []byte {
 	exp = int32(ret.exp)
 	sign = uint32(ret.sign)
 
-	// if decQuad value is not in 34 digits range, or Inf or Nan, we want our function to output the number, or Infinity, or NaN.
+	// if Quad value is not in 34 digits range, or Inf or Nan, we want our function to output the number, or Infinity, or NaN. Falls back on QuadToString.
 
 	if exp > 0 || exp < -DECQUAD_Pmax || inf_nan != 0 {
 		ret_str = C.mdq_to_QuadToString(a.val) // may use exponent notation
@@ -1082,7 +1078,7 @@ func AppendQuad(dst []byte, a Quad) []byte {
 
 	i := 0
 
-	integral_part_length := len(BCD_slice) + int(exp) // here, exp is <= 0
+	integral_part_length := len(BCD_slice) + int(exp) // here, exp is [-DECQUAD_Pmax ... 0]
 
 	BCD_integral_part := BCD_slice[:integral_part_length]
 	BCD_fractional_part := BCD_slice[integral_part_length:]
@@ -1097,7 +1093,7 @@ func AppendQuad(dst []byte, a Quad) []byte {
 		i++
 	}
 
-	if i == 0 { // write '0' if integral part is 0
+	if i == 0 { // write '0' if no digit written for integral part
 		buff[i] = '0'
 		i++
 	}
@@ -1194,4 +1190,3 @@ func (context *Context) ToFloat64(a Quad) float64 {
 
 	return val
 }
-

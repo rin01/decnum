@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "decQuad.h"      // this header includes "decContext.h"
-#include "decimal128.h"   // interface to decNumber, used for decNumberPower()
+#include "decimal128.h"   // interface to decNumber, used for decNumberPower(). Also for definition of DECDPUN.
 
 
 #define MDQ_INFINITE                     1     // result is Inf or -Inf
@@ -111,7 +111,7 @@ Ret_decQuad_t    mdq_min(decQuad a, decQuad b, decContext set);
 Ret_decQuad_t    mdq_from_string(Strarray_t strarray, decContext set);
 Ret_decQuad_t    mdq_from_int32(int32_t value, decContext set);
 Ret_decQuad_t    mdq_from_int64(int64_t value, decContext set);
-Ret_decQuad_t    mdq_from_double(double value, decContext set);
+//Ret_decQuad_t    mdq_from_double(double value, decContext set);   // deprecated
 
 Ret_str          mdq_to_QuadToString(decQuad a);
 Ret_BCD          mdq_to_BCD(decQuad a);
