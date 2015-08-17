@@ -33,8 +33,12 @@ I have only written the following files:
    - mydecquad.c
    - mydecquad.h
    - mydecquad.go
+   - mydecquad_test.go
+   - doc.go
 
-They are quite easy to read, and the pattern for calling C function is always the same.
+The other .c and .h files in the directory come from the original C decNumber package.
+
+The code of this Go wrapper are quite easy to read, and the pattern for calling C function is always the same.
 Parameters are always passed from Go to C as value, and in the other direction too.
 Strings are passed as array in struct, so they are passed by value too.
 
@@ -51,13 +55,11 @@ https://godoc.org/github.com/rin01/decnum
 You can find an example of use in the directory decnum/example_decnum.
 
 
-### DISCLAIMER
-  I have written this package just to quickly experiment with decimal fixed-size base-10 floating point.
-  I think this package works quite well, __but I haven't tested it as much as I would like__ !
-  So, don't use it in production without writing some tests !
-  The code is quite easy to read, and not very long. It uses cgo with the same pattern everywhere to call C functions.
+### Test
+The test file mydecquad_test.go is very instructive.
+Run the test:
 
-  Unfortunately, I really don't have time to work on this package further on.
-  So, if you file issues, I won't answer rapidly.
+    go test
+
 
 
