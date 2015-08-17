@@ -348,7 +348,7 @@ func (context *Context) SetRounding(rounding Round_mode_t) {
 // After a series of operations, the status contains the accumulated errors or informational flags that occurred during all the operations.
 // Beware: the status can contain informational flags, like Flag_Inexact, which is not an error.
 // To find the real errors, you must discard the non-error bits of the status as follows:
-//      ctx.Status() & decnum.Errors
+//      ctx.Status() & decnum.ErrorMask
 //
 //
 // It is easier to use the context.ErrorMask method to check for errors.
