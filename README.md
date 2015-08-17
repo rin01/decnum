@@ -30,10 +30,10 @@ __This Go package only uses the decQuad data type__, which is 128 bits long. It 
 It is very much like the float64, except that its precision is better (float64 has a precision of only 15 digits), and it works in base-10 instead of base-2.
 
 I have only written the following files:
-   - mydecquad.c
-   - mydecquad.h
-   - mydecquad.go
-   - mydecquad_test.go
+   - [mydecquad.c](https://github.com/rin01/decnum/blob/master/mydecquad.c)
+   - [mydecquad.h](https://github.com/rin01/decnum/blob/master/mydecquad.h)
+   - [mydecquad.go](https://github.com/rin01/decnum/blob/master/mydecquad.go)
+   - [mydecquad_test.go](https://github.com/rin01/decnum/blob/master/mydecquad_test.go)
    - doc.go
 
 The other .c and .h files in the directory come from the original C decNumber package.
@@ -54,9 +54,12 @@ https://godoc.org/github.com/rin01/decnum
 ### Example
 You can find an example of use in the directory decnum/example_decnum.
 
+https://github.com/rin01/decnum/blob/master/example_decnum/main.go
+
 
 ### Test
-The test file mydecquad_test.go is very instructive.
+The test file [mydecquad_test.go](https://github.com/rin01/decnum/blob/master/mydecquad_test.go) is very instructive.
+
 Run the test:
 
     go test
