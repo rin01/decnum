@@ -161,9 +161,9 @@ func Test_simple_functions(t *testing.T) {
 		t.Fatal("a = One() failed")
 	}
 
-	// Nan
+	// NaN
 
-	a = Nan()
+	a = NaN()
 
 	if a.String() != "NaN" {
 		t.Fatal("a = Nan() failed")

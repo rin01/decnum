@@ -440,7 +440,7 @@ func (cmp Cmp_t) String() string {
 	}
 }
 
-// return 0 Quad value.
+// Zero returns 0 Quad value.
 //
 //     r = Zero()  // assign 0 to the Quad r
 //
@@ -449,7 +449,7 @@ func Zero() (r Quad) {
 	return g_zero
 }
 
-// return 1 Quad value.
+// One returns 1 Quad value.
 //
 //     r = One()  // assign 1 to the Quad r
 //
@@ -458,11 +458,11 @@ func One() (r Quad) {
 	return g_one
 }
 
-// return Nan Quad value.
+// NaN returns NaN Quad value.
 //
-//     r = Nan()  // assign Nan to the Quad r
+//     r = NaN()  // assign NaN to the Quad r
 //
-func Nan() (r Quad) {
+func NaN() (r Quad) {
 
 	return g_nan
 }
@@ -906,7 +906,7 @@ func (context *Context) FromString(s string) (r Quad) {
 
 	if len(s) >= MAX_STRING_CAPACITY { // must be room for terminating \0
 		context.SetStatus(Flag_Conversion_syntax)
-		r = Nan()
+		r = NaN()
 		return r
 	}
 
