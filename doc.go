@@ -71,9 +71,11 @@ Tech note
 
 This package uses cgo to call functions in the C decNumber package.
 
-    All parameters are sent and received BY VALUE, because they are small.
-    Quad is only 128 bits, Context are also sent and received by value because they are small struct (28 bytes). Sane for strings, which are small arrays embedded in struct.
-    This way, there is no need to make complex things with pointers between Go and C world, and it is as fast, or even faster.
+All parameters are sent and received BY VALUE, because they are small.
+
+Quad is only 128 bits, Context are also sent and received by value because they are small struct (28 bytes). Same for strings, which are small arrays embedded in struct.
+
+This way, there is no need to make complex things with pointers between Go and C world, and it is as fast, or even faster.
 
 */
 package decnum

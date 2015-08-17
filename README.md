@@ -38,7 +38,7 @@ I have only written the following files:
 
 The other .c and .h files in the directory come from the original C decNumber package.
 
-The code of this Go wrapper are quite easy to read, and the pattern for calling C function is always the same.
+The code of this Go wrapper is quite easy to read, and the pattern for calling C function is always the same.
 Parameters are always passed from Go to C as value, and in the other direction too.
 Strings are passed as array in struct, so they are passed by value too.
 
