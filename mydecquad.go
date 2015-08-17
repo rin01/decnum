@@ -388,7 +388,7 @@ func (context *Context) ResetStatus() {
 // If an error occured, the subsequent operations will work on operands that will frequently be Nan, and Nan will propagate.
 // But if you convert a Quad to a int32 and overflow occurs, the value returned is 0, making the error not so obvious to detect.
 //
-// So, don't forget to call ctx.Errors at the end of each series of operations.
+// So, don't forget to call ctx.Error at the end of each series of operations.
 //
 // Errors accumulate in the status field of Context, setting bits but never clearing them. So, an error will never be lost.
 //
