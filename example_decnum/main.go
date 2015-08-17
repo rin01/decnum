@@ -13,6 +13,12 @@ import (
 	"github.com/rin01/decnum"
 )
 
+func assert(val bool) {
+	if val == false {
+		panic("assertion failed")
+	}
+}
+
 func main() {
 	var (
 		ctx decnum.Context
@@ -153,9 +159,35 @@ func main() {
 		log.Printf("ERROR OCCURED !!!!!!!   %v\n", err)
 	}
 
+	//============================ rounding ================================
+
+	fmt.Println("")
+	fmt.Println("========= rounding ==========")
+
+	ctx.ResetStatus() // clear the status
+
+	var g decnum.Quad = ctx.FromString("123.7")
+	var g_up decnum.Quad
+	var g_down decnum.Quad
 
 
+	ctx.SetRounding(decnum.ROUND_UP)
+	assert(ctx.Rounding() == decnum.ROUND_UP)
+	g_up = ctx.Quantize(g, decnum.One())
 
-	fmt.Println("beuu", a)
-	fmt.Printf("beuu %s\n", a)
+	ctx.SetRounding(decnum.ROUND_DOWN)
+	assert(ctx.Rounding() == decnum.ROUND_DOWN)
+	g_down = ctx.Quantize(g, decnum.One())
+
+	ctx.SetRounding(decnum.ROUND_DEFAULT)
+	assert(ctx.Rounding() == decnum.ROUND_HALF_EVEN)
+
+	fmt.Printf("%s rounded up   is %s\n", g, g_up)
+	fmt.Printf("%s rounded down is %s\n", g, g_down)
+
+
+fmt.Println(a.QuadToString())
+fmt.Println(a.String())
+
+
 }

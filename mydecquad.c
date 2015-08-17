@@ -385,7 +385,7 @@ Ret_decQuad_t mdq_min(decQuad a, decQuad b, decContext set) {
    A terminating 0 is written in the array.
    Never fails.
 
-   The function decQuadToString() uses exponential notation if number < 0 and too many 0 after decimal point.
+   The function decQuadToString() uses exponential notation if number < 1 and too many 0 after decimal point.
 */
 Ret_str mdq_to_QuadToString(decQuad a) {
 

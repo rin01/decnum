@@ -100,6 +100,8 @@ func quad_for_varinit(s string) (r Quad) {
 		val Quad
 	)
 
+	ctx.InitDefaultQuad()
+
 	val = ctx.FromString(s)
 
 	if err := ctx.Error(); err != nil {
@@ -125,7 +127,7 @@ var (
 func init() {
 	C.mdq_init()
 
-	if DECQUAD_Bytes != 16 { // DECQUAD_Bytes MUST NOT BE > 16, because Append_compressed_bytes() will silently fail if it is not the case
+	if DECQUAD_Bytes != 16 { // 16 bytes == 128 bits
 		panic("DECQUAD_Bytes != 16")
 	}
 
@@ -236,8 +238,11 @@ func (status Status_t) String() string {
 // For decQuad usage, only these two fields are used.
 //
 // When an error occurs during an operation, the result will probably be NaN or infinite, or a infinitesimal number if underflow.
+// If conversion error to int32, int64, etc, it will be 0.
 //
 type Context struct {
+	sane bool // if true, it can be used because it has been initialized with ctx.InitDefaultQuad()
+
 	set C.decContext
 }
 
@@ -252,6 +257,8 @@ const (
 func (context *Context) initialize(kind Context_kind_t) {
 
 	context.set = C.mdq_context_default(context.set, C.uint32_t(kind))
+
+	context.sane = true
 }
 
 // InitDefaultQuad is used to initialize a context with default value for Quad operations. It sets rounding mode, and clears status field.
@@ -259,11 +266,14 @@ func (context *Context) initialize(kind Context_kind_t) {
 func (context *Context) InitDefaultQuad() {
 
 	context.set = C.mdq_context_default(context.set, C.uint32_t(DEFAULT_DECQUAD))
+
+	context.sane = true
 }
 
 // Rounding returns the rounding mode of the context.
 //
 func (context *Context) Rounding() Round_mode_t {
+	assert(context.sane)
 
 	return Round_mode_t(C.mdq_context_get_rounding(context.set))
 }
@@ -271,6 +281,7 @@ func (context *Context) Rounding() Round_mode_t {
 // SetRounding sets the rounding mode of the context.
 //
 func (context *Context) SetRounding(rounding Round_mode_t) {
+	assert(context.sane)
 
 	context.set = C.mdq_context_set_rounding(context.set, C.int(rounding))
 }
@@ -286,6 +297,7 @@ func (context *Context) SetRounding(rounding Round_mode_t) {
 // It is easier to use the context.ErrorMask method to check for errors.
 //
 func (context *Context) Status() Status_t {
+	assert(context.sane)
 
 	return Status_t(C.mdq_context_get_status(context.set))
 }
@@ -295,6 +307,7 @@ func (context *Context) Status() Status_t {
 // Normally, only library modules use this function. Applications have no reason to set status bits.
 //
 func (context *Context) SetStatus(flag Status_t) {
+	assert(context.sane)
 
 	context.set = C.mdq_context_set_status(context.set, C.uint32_t(flag))
 }
@@ -303,6 +316,7 @@ func (context *Context) SetStatus(flag Status_t) {
 // You can continue to use this context for a new series of operations.
 //
 func (context *Context) ResetStatus() {
+	assert(context.sane)
 
 	context.set = C.mdq_context_zero_status(context.set)
 }
@@ -325,6 +339,7 @@ func (context *Context) ResetStatus() {
 //
 func (context *Context) Error() error {
 	var status Status_t
+	assert(context.sane)
 
 	status = context.Status()
 
@@ -449,6 +464,7 @@ func Copy(a Quad) (r Quad) {
 //
 func (context *Context) Minus(a Quad) (r Quad) {
 	var result C.Ret_decQuad_t
+	assert(context.sane)
 
 	result = C.mdq_minus(a.val, context.set)
 
@@ -460,6 +476,7 @@ func (context *Context) Minus(a Quad) (r Quad) {
 //
 func (context *Context) Add(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
+	assert(context.sane)
 
 	result = C.mdq_add(a.val, b.val, context.set)
 
@@ -471,6 +488,7 @@ func (context *Context) Add(a Quad, b Quad) (r Quad) {
 //
 func (context *Context) Subtract(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
+	assert(context.sane)
 
 	result = C.mdq_subtract(a.val, b.val, context.set)
 
@@ -482,6 +500,7 @@ func (context *Context) Subtract(a Quad, b Quad) (r Quad) {
 //
 func (context *Context) Multiply(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
+	assert(context.sane)
 
 	result = C.mdq_multiply(a.val, b.val, context.set)
 
@@ -493,6 +512,7 @@ func (context *Context) Multiply(a Quad, b Quad) (r Quad) {
 //
 func (context *Context) Divide(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
+	assert(context.sane)
 
 	result = C.mdq_divide(a.val, b.val, context.set)
 
@@ -504,6 +524,7 @@ func (context *Context) Divide(a Quad, b Quad) (r Quad) {
 //
 func (context *Context) DivideInteger(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
+	assert(context.sane)
 
 	result = C.mdq_divide_integer(a.val, b.val, context.set)
 
@@ -515,6 +536,7 @@ func (context *Context) DivideInteger(a Quad, b Quad) (r Quad) {
 //
 func (context *Context) Remainder(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
+	assert(context.sane)
 
 	result = C.mdq_remainder(a.val, b.val, context.set)
 
@@ -526,6 +548,7 @@ func (context *Context) Remainder(a Quad, b Quad) (r Quad) {
 //
 func (context *Context) Abs(a Quad) (r Quad) {
 	var result C.Ret_decQuad_t
+	assert(context.sane)
 
 	result = C.mdq_abs(a.val, context.set)
 
@@ -537,6 +560,7 @@ func (context *Context) Abs(a Quad) (r Quad) {
 //
 func (context *Context) ToIntegral(a Quad, round Round_mode_t) (r Quad) {
 	var result C.Ret_decQuad_t
+	assert(context.sane)
 
 	result = C.mdq_to_integral(a.val, context.set, C.int(round))
 
@@ -563,6 +587,7 @@ func (context *Context) ToIntegral(a Quad, round Round_mode_t) (r Quad) {
 //
 func (context *Context) Quantize(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
+	assert(context.sane)
 
 	result = C.mdq_quantize(a.val, b.val, context.set)
 
@@ -587,6 +612,7 @@ func (context *Context) Quantize(a Quad, b Quad) (r Quad) {
 //
 func (context *Context) Compare(a Quad, b Quad) Cmp_t {
 	var result C.Ret_uint32_t
+	assert(context.sane)
 
 	result = C.mdq_compare(a.val, b.val, context.set)
 
@@ -607,6 +633,7 @@ func (context *Context) Compare(a Quad, b Quad) Cmp_t {
 //
 func (context *Context) Cmp(a Quad, b Quad, comp_mask Cmp_t) bool {
 	var result C.Ret_uint32_t
+	assert(context.sane)
 
 	result = C.mdq_compare(a.val, b.val, context.set)
 
@@ -622,6 +649,7 @@ func (context *Context) Cmp(a Quad, b Quad, comp_mask Cmp_t) bool {
 //
 func (context *Context) Greater(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
+	assert(context.sane)
 
 	result = C.mdq_compare(a.val, b.val, context.set)
 
@@ -637,6 +665,7 @@ func (context *Context) Greater(a Quad, b Quad) bool {
 //
 func (context *Context) GreaterEqual(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
+	assert(context.sane)
 
 	result = C.mdq_compare(a.val, b.val, context.set)
 
@@ -652,6 +681,7 @@ func (context *Context) GreaterEqual(a Quad, b Quad) bool {
 //
 func (context *Context) Equal(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
+	assert(context.sane)
 
 	result = C.mdq_compare(a.val, b.val, context.set)
 
@@ -667,6 +697,7 @@ func (context *Context) Equal(a Quad, b Quad) bool {
 //
 func (context *Context) LessEqual(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
+	assert(context.sane)
 
 	result = C.mdq_compare(a.val, b.val, context.set)
 
@@ -682,6 +713,7 @@ func (context *Context) LessEqual(a Quad, b Quad) bool {
 //
 func (context *Context) Less(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
+	assert(context.sane)
 
 	result = C.mdq_compare(a.val, b.val, context.set)
 
@@ -705,6 +737,14 @@ func (a Quad) IsFinite() bool {
 }
 
 // IsInteger returns true if a is finite and has exponent=0.
+//
+//      0          returns true
+//      1          returns true
+//      12.34e2    returns true
+//      0.0000     returns false
+//      1.0000     returns false
+//     -12.34e5    returns false
+//      1e3        returns false
 //
 func (a Quad) IsInteger() bool {
 
@@ -775,6 +815,7 @@ func (a Quad) IsNegative() bool {
 //
 func (context *Context) Max(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
+	assert(context.sane)
 
 	result = C.mdq_max(a.val, b.val, context.set)
 
@@ -787,6 +828,7 @@ func (context *Context) Max(a Quad, b Quad) (r Quad) {
 //
 func (context *Context) Min(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
+	assert(context.sane)
 
 	result = C.mdq_min(a.val, b.val, context.set)
 
@@ -813,6 +855,56 @@ var pool = sync.Pool{
 		//fmt.Println("---   POOL")
 		return make([]byte, DECQUAD_String) // largest of DECQUAD_String and DECQUAD_Pmax. This size is ok for AppendQuad and String methods.
 	},
+}
+
+// QuadToString returns the string representation of a decQuad number.
+// It calls the C function QuadToString of the original decNumber package.
+//
+//       This function uses exponential notation quite often.
+//       E.g. 0.0000001 returns "1E-7", which is often not what we want.
+//
+//       It is better to use the method AppendQuad() or String(), which don't use exponential notation when it is avoidable for number in range ]-1; 1[.
+//
+//       input string                              a.QuadToString()                            a.String()
+//
+//       1                                         1                                           1
+//       0.1                                       0.1                                         0.1
+//       1e-2                                      0.01                                        0.01
+//       0.000001                                  0.000001                                    0.000001
+//       0.0000001                                 1E-7                                        0.0000001
+//       0.0000000000000000000000000000000001      1E-34                                       0.0000000000000000000000000000000001
+//       0.00000000000000000000000000000000001     1E-35                                       1E-35
+//       0.000000000123400000000                   1.23400000000E-10                           0.000000000123400000000
+//       0.0000000000000000000000123400000000      1.23400000000E-23                           0.0000000000000000000000123400000000
+//       0.00000000000000000000000123400000000     1.23400000000E-24                           1.23400000000E-24
+//       12340                                     12340                                       12340
+//       1234000000000000000000000000000000        1234000000000000000000000000000000          1234000000000000000000000000000000
+//       12340000000000000000000000000000000       1.234000000000000000000000000000000E+34     1.234000000000000000000000000000000E+34
+//       12340e3                                   1.2340E+7                                   1.2340E+7
+//       12345678901234567890.12345678901234       12345678901234567890.12345678901234         12345678901234567890.12345678901234
+//       1234567890123456789012345678901234        1234567890123456789012345678901234          1234567890123456789012345678901234
+//
+//       String() writes a number in range ]-1; 1[ without exp notation if all its significant digits can be written in the pattern     0.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+//
+func (a Quad) QuadToString() string {
+	var (
+		ret_str   C.Ret_str
+		str_slice []byte // capacity must be exactly DECQUAD_String
+		s string
+	)
+
+		ret_str = C.mdq_to_QuadToString(a.val) // may use exponent notation
+
+		str_slice = pool.Get().([]byte)[:DECQUAD_String]
+		defer pool.Put(str_slice)
+
+		for i := 0; i < int(ret_str.length); i++ {
+			str_slice[i] = byte(ret_str.s[i])
+		}
+
+		s = string(str_slice[:ret_str.length])
+
+		return s
 }
 
 // AppendQuad appends string representation of decQuad into byte slice.
@@ -875,7 +967,7 @@ func AppendQuad(dst []byte, a Quad) []byte {
 
 	i := 0
 
-	integral_part_length := len(BCD_slice) + int(exp) // here, exp is negative
+	integral_part_length := len(BCD_slice) + int(exp) // here, exp is <= 0
 
 	BCD_integral_part := BCD_slice[:integral_part_length]
 	BCD_fractional_part := BCD_slice[integral_part_length:]
@@ -943,6 +1035,7 @@ func (a Quad) String() string {
 //
 func (context *Context) ToInt32(a Quad, round Round_mode_t) int32 {
 	var result C.Ret_int32_t
+	assert(context.sane)
 
 	result = C.mdq_to_int32(a.val, context.set, C.int(round))
 
@@ -955,6 +1048,7 @@ func (context *Context) ToInt32(a Quad, round Round_mode_t) int32 {
 //
 func (context *Context) ToInt64(a Quad, round Round_mode_t) int64 {
 	var result C.Ret_int64_t
+	assert(context.sane)
 
 	result = C.mdq_to_int64(a.val, context.set, C.int(round))
 
@@ -970,6 +1064,7 @@ func (context *Context) ToFloat64(a Quad) float64 {
 		s   string
 		val float64
 	)
+	assert(context.sane)
 
 	s = a.String()
 
@@ -997,6 +1092,7 @@ func (context *Context) FromString(s string) (r Quad) {
 		strarray C.Strarray_t
 		result   C.Ret_decQuad_t
 	)
+	assert(context.sane)
 
 	s = strings.TrimSpace(s)
 
@@ -1022,6 +1118,7 @@ func (context *Context) FromString(s string) (r Quad) {
 //
 func (context *Context) FromInt32(value int32) (r Quad) {
 	var result C.Ret_decQuad_t
+	assert(context.sane)
 
 	result = C.mdq_from_int32(C.int32_t(value), context.set)
 
@@ -1033,6 +1130,7 @@ func (context *Context) FromInt32(value int32) (r Quad) {
 //
 func (context *Context) FromInt64(value int64) (r Quad) {
 	var result C.Ret_decQuad_t
+	assert(context.sane)
 
 	result = C.mdq_from_int64(C.int64_t(value), context.set)
 
@@ -1044,6 +1142,7 @@ func (context *Context) FromInt64(value int64) (r Quad) {
 //
 func (context *Context) FromFloat64(value float64) (r Quad) {
 	var result C.Ret_decQuad_t
+	assert(context.sane)
 
 	result = C.mdq_from_double(C.double(value), context.set)
 

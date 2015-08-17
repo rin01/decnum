@@ -22,7 +22,7 @@
 
 void mdq_init(void);
 
-#define MAX_STRING_CAPACITY  50
+#define MAX_STRING_CAPACITY  60
 
 // struct used to pass strings from Go to C, by value.
 //

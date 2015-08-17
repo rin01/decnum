@@ -87,6 +87,66 @@ func bool2string(b bool) string {
 	return "false"
 }
 
+func Test_simple_functions(t *testing.T) {
+var (
+	ctx Context
+
+	a Quad
+	b Quad
+)
+
+	ctx.InitDefaultQuad()
+
+	// Zero
+
+	a = Zero()
+
+	if a.String() != "0" {
+		t.Fatal("a = Zero() failed")
+	}
+
+	// One
+
+	a = One()
+
+	if a.String() != "1" {
+		t.Fatal("a = One() failed")
+	}
+
+	// Nan
+
+	a = Nan()
+
+	if a.String() != "NaN" {
+		t.Fatal("a = Nan() failed")
+	}
+
+	// assignment
+
+	a = ctx.FromString("123.45")
+
+	b = a
+
+	if b.String() != "123.45" {
+		t.Fatal("b = a failed")
+	}
+
+	// Copy
+
+	a = ctx.FromString("567890.245")
+
+	b = Copy(a)
+
+	if b.String() != "567890.245" {
+		t.Fatal("b = a failed")
+	}
+
+
+
+
+}
+
+
 func Test_operations(t *testing.T) {
 
 	type Operation_t string
@@ -105,17 +165,19 @@ func Test_operations(t *testing.T) {
 		T_COMPARE        Operation_t = "Compare"
 		T_CMP_GE         Operation_t = "Cmp_GE" // Cmp(a, b, CMP_GREATER|CMP_EQUAL)
 		T_GREATER        Operation_t = "Greater"
-		T_GREATEREQUAL        Operation_t = "GreaterEqual"
-		T_EQUAL        Operation_t = "Equal"
-		T_LESSEQUAL        Operation_t = "LessEqual"
-		T_LESS        Operation_t = "Less"
-		T_ISFINITE        Operation_t = "IsFinite"
-		T_ISINTEGER        Operation_t = "IsInteger"
-		T_ISINFINITE        Operation_t = "IsInfinite"
-		T_ISNAN        Operation_t = "IsNan"
-		T_ISPOSITIVE        Operation_t = "IsPositive"
-		T_ISZERO        Operation_t = "IsZero"
-		T_ISNEGATIVE        Operation_t = "IsNegative"
+		T_GREATEREQUAL   Operation_t = "GreaterEqual"
+		T_EQUAL          Operation_t = "Equal"
+		T_LESSEQUAL      Operation_t = "LessEqual"
+		T_LESS           Operation_t = "Less"
+		T_ISFINITE       Operation_t = "IsFinite"
+		T_ISINTEGER      Operation_t = "IsInteger"
+		T_ISINFINITE     Operation_t = "IsInfinite"
+		T_ISNAN          Operation_t = "IsNan"
+		T_ISPOSITIVE     Operation_t = "IsPositive"
+		T_ISZERO         Operation_t = "IsZero"
+		T_ISNEGATIVE     Operation_t = "IsNegative"
+		T_MAX            Operation_t = "Max"
+		T_MIN            Operation_t = "Min"
 	)
 
 	var (
@@ -325,8 +387,6 @@ func Test_operations(t *testing.T) {
 		{T_TOINTEGRAL, smallquad, "ROUND_HALF_EVEN", "0", false},
 		{T_TOINTEGRAL, nsmallquad, "ROUND_HALF_EVEN", "0", false},
 
-
-
 		{T_QUANTIZE, "NaN", "NaN", "NaN", false},
 		{T_QUANTIZE, "NaN", "123", "NaN", false},
 		{T_QUANTIZE, "NaN", "Inf", "NaN", false},
@@ -347,7 +407,6 @@ func Test_operations(t *testing.T) {
 		{T_QUANTIZE, "123.1230", "1e2", "1E+2", false},
 		{T_QUANTIZE, "12345.1230", "1e2", "1.23E+4", false},
 
-
 		{T_COMPARE, "NaN", "NaN", "CMP_NAN", false},
 		{T_COMPARE, "NaN", "123", "CMP_NAN", false},
 		{T_COMPARE, "NaN", "Inf", "CMP_NAN", false},
@@ -365,7 +424,6 @@ func Test_operations(t *testing.T) {
 		{T_COMPARE, "-12345.6700001", "-12345.67", "CMP_LESS", false},
 		{T_COMPARE, "-12345.67000", "-12345.67", "CMP_EQUAL", false},
 		{T_COMPARE, "-12345.669999", "-12345.67", "CMP_GREATER", false},
-
 
 		{T_CMP_GE, "12345.6700001", "12345.67", "true", false},
 		{T_CMP_GE, "12345.67000", "12345.67", "true", false},
@@ -465,21 +523,123 @@ func Test_operations(t *testing.T) {
 		{T_LESS, "-12345.669999", "-12345.67", "false", false},
 
 		{T_ISFINITE, "NaN", "", "false", false},
-		{T_ISFINITE, "Inf", "", "true", false},
-		{T_ISFINITE, "-Inf", "", "true", false},
-		{T_ISFINITE, "0.0000", "", "false", false},
-		{T_ISFINITE, "1234", "", "false", false},
-		{T_ISFINITE, maxquad, "", "false", false},
+		{T_ISFINITE, "Inf", "", "false", false},
+		{T_ISFINITE, "-Inf", "", "false", false},
+		{T_ISFINITE, "0.0000", "", "true", false},
+		{T_ISFINITE, "-0.0000", "", "true", false},
+		{T_ISFINITE, "1234", "", "true", false},
+		{T_ISFINITE, "1234.5", "", "true", false},
+		{T_ISFINITE, "-12.34e5", "", "true", false},
+		{T_ISFINITE, "12.34e5", "", "true", false},
+		{T_ISFINITE, maxquad, "", "true", false},
 
+		{T_ISINTEGER, "NaN", "", "false", false},
+		{T_ISINTEGER, "Inf", "", "false", false},
+		{T_ISINTEGER, "-Inf", "", "false", false},
+		{T_ISINTEGER, "0", "", "true", false},
+		{T_ISINTEGER, "0.0000", "", "false", false},
+		{T_ISINTEGER, "12.34e2", "", "true", false},
+		{T_ISINTEGER, "12.34e3", "", "false", false},
+		{T_ISINTEGER, "1", "", "true", false},
+		{T_ISINTEGER, "1.0000", "", "false", false},
+		{T_ISINTEGER, "-0.0000", "", "false", false},
+		{T_ISINTEGER, "1234", "", "true", false},
+		{T_ISINTEGER, "1234.5", "", "false", false},
+		{T_ISINTEGER, "-12.34e5", "", "false", false},
+		{T_ISINTEGER, "12.34e5", "", "false", false},
+		{T_ISINTEGER, maxquad, "", "false", false},
+		{T_ISINTEGER, "1e3", "", "false", false},
 
+		{T_ISINFINITE, "NaN", "", "false", false},
+		{T_ISINFINITE, "Inf", "", "true", false},
+		{T_ISINFINITE, "-Inf", "", "true", false},
+		{T_ISINFINITE, "0.0000", "", "false", false},
+		{T_ISINFINITE, "-0.0000", "", "false", false},
+		{T_ISINFINITE, "1234", "", "false", false},
+		{T_ISINFINITE, "1234.5", "", "false", false},
+		{T_ISINFINITE, "-12.34e5", "", "false", false},
+		{T_ISINFINITE, "12.34e5", "", "false", false},
+		{T_ISINFINITE, maxquad, "", "false", false},
 
-		T_ISINTEGER        Operation_t = "IsInteger"
-		T_ISINFINITE        Operation_t = "IsInfinite"
-		T_ISNAN        Operation_t = "IsNan"
-		T_ISPOSITIVE        Operation_t = "IsPositive"
-		T_ISZERO        Operation_t = "IsZero"
-		T_ISNEGATIVE        Operation_t = "IsNegative"
+		{T_ISNAN, "NaN", "", "true", false},
+		{T_ISNAN, "Inf", "", "false", false},
+		{T_ISNAN, "-Inf", "", "false", false},
+		{T_ISNAN, "0.0000", "", "false", false},
+		{T_ISNAN, "-0.0000", "", "false", false},
+		{T_ISNAN, "1234", "", "false", false},
+		{T_ISNAN, "1234.5", "", "false", false},
+		{T_ISNAN, "-12.34e5", "", "false", false},
+		{T_ISNAN, "12.34e5", "", "false", false},
+		{T_ISNAN, maxquad, "", "false", false},
 
+		{T_ISPOSITIVE, "NaN", "", "false", false},
+		{T_ISPOSITIVE, "Inf", "", "true", false},
+		{T_ISPOSITIVE, "-Inf", "", "false", false},
+		{T_ISPOSITIVE, "0.0000", "", "false", false},
+		{T_ISPOSITIVE, "-0.0000", "", "false", false},
+		{T_ISPOSITIVE, "1234", "", "true", false},
+		{T_ISPOSITIVE, "1234.5", "", "true", false},
+		{T_ISPOSITIVE, "-12.34e5", "", "false", false},
+		{T_ISPOSITIVE, "12.34e5", "", "true", false},
+		{T_ISPOSITIVE, maxquad, "", "true", false},
+
+		{T_ISZERO, "NaN", "", "false", false},
+		{T_ISZERO, "Inf", "", "false", false},
+		{T_ISZERO, "-Inf", "", "false", false},
+		{T_ISZERO, "0.0000", "", "true", false},
+		{T_ISZERO, "-0.0000", "", "true", false},
+		{T_ISZERO, "1234", "", "false", false},
+		{T_ISZERO, "1234.5", "", "false", false},
+		{T_ISZERO, "-12.34e5", "", "false", false},
+		{T_ISZERO, "12.34e5", "", "false", false},
+		{T_ISZERO, maxquad, "", "false", false},
+
+		{T_ISNEGATIVE, "NaN", "", "false", false},
+		{T_ISNEGATIVE, "Inf", "", "false", false},
+		{T_ISNEGATIVE, "-Inf", "", "true", false},
+		{T_ISNEGATIVE, "0.0000", "", "false", false},
+		{T_ISNEGATIVE, "-0.0000", "", "false", false},
+		{T_ISNEGATIVE, "1234", "", "false", false},
+		{T_ISNEGATIVE, "1234.5", "", "false", false},
+		{T_ISNEGATIVE, "-12.34e5", "", "true", false},
+		{T_ISNEGATIVE, "12.34e5", "", "false", false},
+		{T_ISNEGATIVE, maxquad, "", "false", false},
+
+		{T_MAX, "NaN", "NaN", "NaN", false},
+		{T_MAX, "NaN", "123", "123", false},
+		{T_MAX, "NaN", "Inf", "Infinity", false},
+		{T_MAX, "123", "NaN", "123", false},
+		{T_MAX, "Inf", "NaN", "Infinity", false},
+		{T_MAX, "Inf", "Inf", "Infinity", false},
+		{T_MAX, "-Inf", "-Inf", "-Infinity", false},
+		{T_MAX, "-Inf", "123", "123", false},
+		{T_MAX, "Inf", "-Inf", "Infinity", false},
+		{T_MAX, "Inf", "123", "Infinity", false},
+		{T_MAX, "123", "Inf", "Infinity", false},
+		{T_MAX, "12345.6700001", "12345.67", "12345.6700001", false},
+		{T_MAX, "12345.67000", "12345.67", "12345.67", false},
+		{T_MAX, "12345.669999", "12345.67", "12345.67", false},
+		{T_MAX, "-12345.6700001", "-12345.67", "-12345.67", false},
+		{T_MAX, "-12345.67000", "-12345.67", "-12345.67000", false},
+		{T_MAX, "-12345.669999", "-12345.67", "-12345.669999", false},
+
+		{T_MIN, "NaN", "NaN", "NaN", false},
+		{T_MIN, "NaN", "123", "123", false},
+		{T_MIN, "NaN", "Inf", "Infinity", false},
+		{T_MIN, "123", "NaN", "123", false},
+		{T_MIN, "Inf", "NaN", "Infinity", false},
+		{T_MIN, "Inf", "Inf", "Infinity", false},
+		{T_MIN, "-Inf", "-Inf", "-Infinity", false},
+		{T_MIN, "-Inf", "123", "-Infinity", false},
+		{T_MIN, "Inf", "-Inf", "-Infinity", false},
+		{T_MIN, "Inf", "123", "123", false},
+		{T_MIN, "123", "Inf", "123", false},
+		{T_MIN, "12345.6700001", "12345.67", "12345.67", false},
+		{T_MIN, "12345.67000", "12345.67", "12345.67000", false},
+		{T_MIN, "12345.669999", "12345.67", "12345.669999", false},
+		{T_MIN, "-12345.6700001", "-12345.67", "-12345.6700001", false},
+		{T_MIN, "-12345.67000", "-12345.67", "-12345.67", false},
+		{T_MIN, "-12345.669999", "-12345.67", "-12345.67", false},
 	}
 
 	ctx.InitDefaultQuad()
@@ -589,6 +749,14 @@ func Test_operations(t *testing.T) {
 		case T_ISNEGATIVE:
 			result_cmp_bool := must_quad(sp.a).IsNegative()
 			output = bool2string(result_cmp_bool)
+
+		case T_MAX:
+			result = ctx.Max(must_quad(sp.a), must_quad(sp.b))
+			output = result.String()
+
+		case T_MIN:
+			result = ctx.Min(must_quad(sp.a), must_quad(sp.b))
+			output = result.String()
 
 		default:
 			panic("operation unknown")
