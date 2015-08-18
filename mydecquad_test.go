@@ -737,7 +737,7 @@ func Test_operations(t *testing.T) {
 		{T_FROMSTRING, "123.45e-45", "", "1.2345E-43", false},
 		{T_FROMSTRING, "   123.45e-45      ", "", "1.2345E-43", false},
 		{T_FROMSTRING, "                                                                    123.45e-45                                 ", "", "1.2345E-43", false},
-		{T_FROMSTRING, "12.3450000000000000000000000000000000000000000000000000000000000000000000000000000000001", "", "NaN", true}, // Conversion_syntax, string too long
+		{T_FROMSTRING, "12.3450000000000000000000000000000000000000000000000000000000000000000000000000000000001", "", "12.34500000000000000000000000000000", false},
 		{T_FROMSTRING, "5368487.87676533e-3546", "", "5.36848787676533E-3540", false},
 		{T_FROMSTRING, maxquad, "", maxquad, false},
 		{T_FROMSTRING, minquad, "", minquad, false},

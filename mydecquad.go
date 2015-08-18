@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"unsafe"
 )
 
 // Note: in the comment block for cgo above, if LDFLAGS is used, the path for LDFLAGS must be an "absolute" path.
@@ -185,7 +186,7 @@ const (
 	//Flag_Lost_digits          Status_t = C.DEC_Lost_digits        // informational flag. Exists only if DECSUBSET is set, which is not the case by default
 )
 
-const ErrorMask Status_t = C.DEC_Errors // ErrorMask is a bitmask of many of the above flags, ORed together. After a series of operations, if status & decnum.Errors != 0, an error has occured, e.g. division by 0.
+const ErrorMask Status_t = C.DEC_Errors // ErrorMask is the bitmask of the error flags, ORed together. After a series of operations, if status & decnum.ErrorMask != 0, an error has occured, e.g. division by 0.
 
 // String representation of a single flag (status with one bit set).
 //
@@ -346,12 +347,16 @@ func (context *Context) SetRounding(rounding Round_mode_t) {
 // Status returns the status of the context.
 //
 // After a series of operations, the status contains the accumulated errors or informational flags that occurred during all the operations.
+//
 // Beware: the status can contain informational flags, like Flag_Inexact, which is not an error.
-// To find the real errors, you must discard the non-error bits of the status as follows:
-//      ctx.Status() & decnum.ErrorMask
 //
+// So, to find the real errors, you must discard the non-error bits of the status as follows:
+//      status = ctx.Status() & decnum.ErrorMask
+//      if status != 0 {
+//             ... error occurred
+//      }
 //
-// It is easier to use the context.ErrorMask method to check for errors.
+// It is easier to use the context.Error method to check for errors.
 //
 func (context *Context) Status() Status_t {
 	assert_sane(context)
@@ -402,7 +407,7 @@ func (context *Context) Error() error {
 
 	status = status & ErrorMask // discard informational flags, keep only error flags
 
-	if status&ErrorMask != 0 {
+	if status != 0 {
 		return fmt.Errorf("decnum error: %s", status.String())
 	}
 
@@ -581,13 +586,12 @@ func (context *Context) Abs(a Quad) (r Quad) {
 //           (-1)^sign  coefficient * 10^exponent
 //           where coefficient is an integer storing 34 digits.
 //
-//         If exponent < 0, the least significant digits are discarded, so that new exponent becomes 0.
-//         If exponent >= 0, the number remains unchanged.
+//       - If exponent < 0, the least significant digits are discarded, so that new exponent becomes 0.
+//             Internally, it calls Quantize(a, 1E0) with specified rounding.
+//       - If exponent >= 0, the number remains unchanged.
 //
 //         E.g.     12.345678e2    is     12345678E-4     -->   1235E0
 //                  123e5          is     123E5        remains   123E5
-//
-// ToIntegral is like Quantize(a, 1E0), but rounding mode can be specified.
 //
 func (context *Context) ToIntegral(a Quad, round Round_mode_t) (r Quad) {
 	var result C.Ret_decQuad_t
@@ -890,33 +894,21 @@ func (context *Context) Min(a Quad, b Quad) (r Quad) {
 /*                                                                      */
 /************************************************************************/
 
-const MAX_STRING_CAPACITY = C.MAX_STRING_CAPACITY // string must be terminated by \0
-
 // FromString returns a Quad from a string.
 //
 func (context *Context) FromString(s string) (r Quad) {
 	var (
-		i        int
-		strarray C.Strarray_t
+		cs      *C.char
 		result   C.Ret_decQuad_t
 	)
 	assert_sane(context)
 
 	s = strings.TrimSpace(s)
 
-	if len(s) >= MAX_STRING_CAPACITY { // must be room for terminating \0
-		context.SetStatus(Flag_Conversion_syntax)
-		r = NaN()
-		return r
-	}
+	cs = C.CString(s)
+	defer C.free(unsafe.Pointer(cs))
 
-	for i = 0; i < len(s); i++ {
-		strarray.arr[i] = C.char(s[i])
-	}
-
-	strarray.arr[i] = 0 // terminating 0
-
-	result = C.mdq_from_string(strarray, context.set)
+	result = C.mdq_from_string(cs, context.set)
 
 	context.set = result.set
 	return Quad{val: result.val}

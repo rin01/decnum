@@ -382,13 +382,13 @@ Ret_decQuad_t mdq_min(decQuad a, decQuad b, decContext set) {
 
 /* conversion from string.
 */
-Ret_decQuad_t mdq_from_string(Strarray_t strarray, decContext set) {
+Ret_decQuad_t mdq_from_string(char *s, decContext set) {
 
   Ret_decQuad_t     res;
 
   /* operation */
 
-  decQuadFromString(&res.val, strarray.arr, &set);
+  decQuadFromString(&res.val, s, &set);
   res.set = set;
 
   return res;
