@@ -896,10 +896,25 @@ func (context *Context) Min(a Quad, b Quad) (r Quad) {
 
 // FromString returns a Quad from a string.
 //
+// Special values "NaN" (also "qNaN"), "sNaN", "NaN123" (NaN with payload), "sNaN123" (sNaN with payload), "Infinity" (or "Inf", "+Inf"), "-Infinity" ( or "-Inf") are accepted.
+//
+//      Infinity and -Infinity, or Inf and -Inf, represent a value infinitely large.
+//
+//      NaN or qNaN, which means "Not a Number", represents an undefined result, when an arithmetic operation has failed. E.g. FromString("hello")
+//                   NaN propagates to all subsequent operations, because if NaN is passed as argument, the result, will be NaN.
+//                   These NaN are called "quiet NaN", because they don't set exceptional condition flag in status when passed as argument to an operation.
+//
+//      sNaN, or "signaling NaN", are created by FromString("sNaN"). When passed as argument to an operation, the result will be NaN, like with quiet NaN.
+//                   But they will set (==signal) an exceptional condition flag in status, "Invalid_operation".
+//                   Signaling NaN propagate to subsequent operation as ordinary NaN (quiet NaN), and not as "signaling NaN".
+//
+// Note that both NaN and sNaN can take an integer payload, e.g. NaN123, created by FromString("NaN123"), and it is up to you to give it a significance.
+// sNaN and payload are not used often, and most probably, you won't use them.
+//
 func (context *Context) FromString(s string) (r Quad) {
 	var (
-		cs      *C.char
-		result   C.Ret_decQuad_t
+		cs     *C.char
+		result C.Ret_decQuad_t
 	)
 	assert_sane(context)
 
