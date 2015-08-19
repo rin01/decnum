@@ -1,6 +1,6 @@
 /*
-package decnum is a Go binding around C decNumber package, for calculation with base-10 floating point numbers.
-Decimal data type is important for financial calculations.
+package decnum is a Go binding around C decNumber package, for calculation with decimal floating point numbers.
+Decimal base-10 data type is important for financial calculations.
 
 Godoc: https://godoc.org/github.com/rin01/decnum
 
