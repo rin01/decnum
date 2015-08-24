@@ -495,7 +495,7 @@ Ret_BCD mdq_to_BCD(decQuad a) {
 
   // convert to BCD
 
-  decQuadToBCD(&a, &exp, ret.BCD);  // this function returns a sign bit, but we don't use it because we don't want -0
+  decQuadToBCD(&a, &exp, (uint8_t*)ret.BCD);  // this function returns a sign bit, but we don't use it because we don't want -0
 
   sign = decQuadIsNegative(&a);     // 0 is never negative
 
