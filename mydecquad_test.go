@@ -249,7 +249,7 @@ func Test_operations(t *testing.T) {
 	//                 Signaling NaN propagate to subsequent operation as ordinary NaN (quiet NaN), and not as "signaling NaN".
 	//
 	// Note that both NaN and sNaN can take an integer payload, e.g. NaN123, created by FromString("NaN123"), and it is up to you to give it a significance.
-	// sNaN and payload are not used often, and most probably, you won't use them.
+	// sNaN and payload are not used often, and most probably, you won't use them. Nan's payload propagates to subsequent operations.
 	//
 
 	var samples = []struct {
@@ -259,11 +259,12 @@ func Test_operations(t *testing.T) {
 		expected_result string      // expected result of operation
 		expected_error  bool        // true if Context status contains an error after operation
 	}{
-		{T_MINUS, "sNaN", "", "NaN", true},    // Invalid_operation      because of sNan (signaling NaN)
-		{T_MINUS, "sNaN123", "", "NaN", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_MINUS, "sNaN", "", "NaN", true},       // Invalid_operation      because of sNan (signaling NaN)
+		{T_MINUS, "sNaN123", "", "NaN123", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_MINUS, "NaN", "", "NaN", false},
-		{T_MINUS, "qNaN", "", "NaN", false},
-		{T_MINUS, "NaN123", "", "10", false},
+		{T_MINUS, "-NaN", "", "-NaN", false},
+		{T_MINUS, "NaN123", "", "NaN123", false},
+		{T_MINUS, "-NaN123", "", "-NaN123", false},
 		{T_MINUS, "Inf", "", "-Infinity", false},
 		{T_MINUS, "-Inf", "", "Infinity", false},
 		{T_MINUS, "-13256748.9879878", "", "13256748.9879878", false},
@@ -274,8 +275,10 @@ func Test_operations(t *testing.T) {
 		{T_MINUS, smallquad, "", nsmallquad, false},
 		{T_MINUS, nsmallquad, "", smallquad, false},
 
-		{T_ADD, "1", "sNaN", "NaN", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_ADD, "1", "sNaN", "NaN", true},       // Invalid_operation      because of sNan (signaling NaN)
+		{T_ADD, "1", "sNaN123", "NaN123", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_ADD, "1", "NaN", "NaN", false},
+		{T_ADD, "1", "NaN123", "NaN123", false},
 		{T_ADD, "NaN", "NaN", "NaN", false},
 		{T_ADD, "NaN", "123", "NaN", false},
 		{T_ADD, "NaN", "Inf", "NaN", false},
@@ -302,9 +305,11 @@ func Test_operations(t *testing.T) {
 		{T_ADD, "1425658446.645373", "-647833330000004.7367", "-647831904341558.091327", false},
 		{T_ADD, smallquad, "1", "1.000000000000000000000000000000000", false},
 
-		{T_SUBTRACT, "1", "sNaN", "NaN", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_SUBTRACT, "1", "sNaN", "NaN", true},       // Invalid_operation      because of sNan (signaling NaN)
+		{T_SUBTRACT, "1", "sNaN456", "NaN456", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_SUBTRACT, "NaN", "NaN", "NaN", false},
 		{T_SUBTRACT, "NaN", "123", "NaN", false},
+		{T_SUBTRACT, "NaN456", "123", "NaN456", false},
 		{T_SUBTRACT, "NaN", "Inf", "NaN", false},
 		{T_SUBTRACT, "123", "NaN", "NaN", false},
 		{T_SUBTRACT, "Inf", "NaN", "NaN", false},
@@ -326,9 +331,11 @@ func Test_operations(t *testing.T) {
 		{T_SUBTRACT, "1425658446.645373", "647833330000004.7367", "-647831904341558.091327", false},
 		{T_SUBTRACT, smallquad, "1", "-1.000000000000000000000000000000000", false},
 
-		{T_MULTIPLY, "1", "sNaN", "NaN", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_MULTIPLY, "1", "sNaN", "NaN", true},       // Invalid_operation      because of sNan (signaling NaN)
+		{T_MULTIPLY, "1", "sNaN456", "NaN456", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_MULTIPLY, "NaN", "NaN", "NaN", false},
 		{T_MULTIPLY, "NaN", "123", "NaN", false},
+		{T_MULTIPLY, "NaN456", "123", "NaN456", false},
 		{T_MULTIPLY, "NaN", "Inf", "NaN", false},
 		{T_MULTIPLY, "123", "NaN", "NaN", false},
 		{T_MULTIPLY, "Inf", "NaN", "NaN", false},
@@ -351,9 +358,11 @@ func Test_operations(t *testing.T) {
 		{T_MULTIPLY, smallquad, "1.000", smallquad, false},
 		{T_MULTIPLY, "435648995.83677856", "15267.748590", "6651379341921.89172958223040", false},
 
-		{T_DIVIDE, "1", "sNaN", "NaN", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_DIVIDE, "1", "sNaN", "NaN", true},       // Invalid_operation      because of sNan (signaling NaN)
+		{T_DIVIDE, "1", "sNaN456", "NaN456", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_DIVIDE, "NaN", "NaN", "NaN", false},
 		{T_DIVIDE, "NaN", "123", "NaN", false},
+		{T_DIVIDE, "NaN456", "123", "NaN456", false},
 		{T_DIVIDE, "NaN", "Inf", "NaN", false},
 		{T_DIVIDE, "123", "NaN", "NaN", false},
 		{T_DIVIDE, "Inf", "NaN", "NaN", false},
@@ -381,9 +390,11 @@ func Test_operations(t *testing.T) {
 		{T_DIVIDE, "435648995.83677856", "15267.748590", "28533.93827313333825337767105582134", false},
 		{T_DIVIDE, "1", "Inf", "0E-6176", false},
 
-		{T_DIVIDE_INTEGER, "1", "sNaN", "NaN", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_DIVIDE_INTEGER, "1", "sNaN", "NaN", true},       // Invalid_operation      because of sNan (signaling NaN)
+		{T_DIVIDE_INTEGER, "1", "sNaN456", "NaN456", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_DIVIDE_INTEGER, "NaN", "NaN", "NaN", false},
 		{T_DIVIDE_INTEGER, "NaN", "123", "NaN", false},
+		{T_DIVIDE_INTEGER, "NaN456", "123", "NaN456", false},
 		{T_DIVIDE_INTEGER, "NaN", "Inf", "NaN", false},
 		{T_DIVIDE_INTEGER, "123", "NaN", "NaN", false},
 		{T_DIVIDE_INTEGER, "Inf", "NaN", "NaN", false},
@@ -404,9 +415,11 @@ func Test_operations(t *testing.T) {
 		{T_DIVIDE_INTEGER, "1e6000", "1e-6000", "NaN", true}, // Overflow
 		{T_DIVIDE_INTEGER, "1e-6000", "1e6000", "0", false},
 
-		{T_REMAINDER, "1", "sNaN", "NaN", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_REMAINDER, "1", "sNaN", "NaN", true},       // Invalid_operation      because of sNan (signaling NaN)
+		{T_REMAINDER, "1", "sNaN456", "NaN456", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_REMAINDER, "NaN", "NaN", "NaN", false},
 		{T_REMAINDER, "NaN", "123", "NaN", false},
+		{T_REMAINDER, "NaN456", "123", "NaN456", false},
 		{T_REMAINDER, "NaN", "Inf", "NaN", false},
 		{T_REMAINDER, "123", "NaN", "NaN", false},
 		{T_REMAINDER, "Inf", "NaN", "NaN", false},
@@ -422,8 +435,10 @@ func Test_operations(t *testing.T) {
 		{T_REMAINDER, "1e6000", "1e-6000", "NaN", true}, // Division_impossible
 		{T_REMAINDER, "Inf", "2", "NaN", true},          // Invalid_operation
 
-		{T_ABS, "sNaN", "", "NaN", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_ABS, "sNaN", "", "NaN", true},       // Invalid_operation      because of sNan (signaling NaN)
+		{T_ABS, "sNaN456", "", "NaN456", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_ABS, "NaN", "", "NaN", false},
+		{T_ABS, "NaN456", "", "NaN456", false},
 		{T_ABS, "Inf", "", "Infinity", false},
 		{T_ABS, "-Inf", "", "Infinity", false},
 		{T_ABS, "-13256748.9879878", "", "13256748.9879878", false},
@@ -434,8 +449,10 @@ func Test_operations(t *testing.T) {
 		{T_ABS, smallquad, "", smallquad, false},
 		{T_ABS, nsmallquad, "", smallquad, false},
 
-		{T_TOINTEGRAL, "sNaN", "ROUND_HALF_EVEN", "NaN", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_TOINTEGRAL, "sNaN", "ROUND_HALF_EVEN", "NaN", true},       // Invalid_operation      because of sNan (signaling NaN)
+		{T_TOINTEGRAL, "sNaN456", "ROUND_HALF_EVEN", "NaN456", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_TOINTEGRAL, "NaN", "ROUND_HALF_EVEN", "NaN", false},
+		{T_TOINTEGRAL, "NaN456", "ROUND_HALF_EVEN", "NaN456", false},
 		{T_TOINTEGRAL, "Inf", "ROUND_HALF_EVEN", "Infinity", false},
 		{T_TOINTEGRAL, "-Inf", "ROUND_HALF_EVEN", "-Infinity", false},
 		{T_TOINTEGRAL, "12e3", "ROUND_HALF_EVEN", "1.2E+4", false},
@@ -475,9 +492,11 @@ func Test_operations(t *testing.T) {
 		{T_TOINTEGRAL, "1234567890123456789012345678901234", "ROUND_HALF_EVEN", "1234567890123456789012345678901234", false},
 		{T_TOINTEGRAL, "12345678901234567890123456789012341", "ROUND_HALF_EVEN", "1.234567890123456789012345678901234E+34", false},
 
-		{T_QUANTIZE, "sNaN", "1", "NaN", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_QUANTIZE, "sNaN", "1", "NaN", true},       // Invalid_operation      because of sNan (signaling NaN)
+		{T_QUANTIZE, "sNaN456", "1", "NaN456", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_QUANTIZE, "NaN", "NaN", "NaN", false},
 		{T_QUANTIZE, "NaN", "123", "NaN", false},
+		{T_QUANTIZE, "NaN456", "123", "NaN456", false},
 		{T_QUANTIZE, "NaN", "Inf", "NaN", false},
 		{T_QUANTIZE, "123", "NaN", "NaN", false},
 		{T_QUANTIZE, "123", "Inf", "NaN", true}, // Invalid_operation
@@ -500,9 +519,11 @@ func Test_operations(t *testing.T) {
 		{T_QUANTIZE, "123e32", "1E1", "1.230000000000000000000000000000000E+34", false},
 		{T_QUANTIZE, "123e32", "10", "NaN", true}, // Invalid_operation
 
-		{T_COMPARE, "sNaN", "1", "CMP_NAN", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_COMPARE, "sNaN", "1", "CMP_NAN", true},    // Invalid_operation      because of sNan (signaling NaN)
+		{T_COMPARE, "sNaN456", "1", "CMP_NAN", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_COMPARE, "NaN", "NaN", "CMP_NAN", false},
 		{T_COMPARE, "NaN", "123", "CMP_NAN", false},
+		{T_COMPARE, "NaN456", "123", "CMP_NAN", false},
 		{T_COMPARE, "NaN", "Inf", "CMP_NAN", false},
 		{T_COMPARE, "123", "NaN", "CMP_NAN", false},
 		{T_COMPARE, "Inf", "NaN", "CMP_NAN", false},
@@ -519,7 +540,10 @@ func Test_operations(t *testing.T) {
 		{T_COMPARE, "-12345.67000", "-12345.67", "CMP_EQUAL", false},
 		{T_COMPARE, "-12345.669999", "-12345.67", "CMP_GREATER", false},
 
-		{T_CMP_GE, "sNaN", "1", "false", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_CMP_GE, "sNaN", "1", "false", true},    // Invalid_operation      because of sNan (signaling NaN)
+		{T_CMP_GE, "sNaN456", "1", "false", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_CMP_GE, "Nan", "123", "false", false},
+		{T_CMP_GE, "Nan456", "123", "false", false},
 		{T_CMP_GE, "12345.6700001", "12345.67", "true", false},
 		{T_CMP_GE, "12345.67000", "12345.67", "true", false},
 		{T_CMP_GE, "12345.669999", "12345.67", "false", false},
@@ -527,9 +551,11 @@ func Test_operations(t *testing.T) {
 		{T_CMP_GE, "-12345.67000", "-12345.67", "true", false},
 		{T_CMP_GE, "-12345.669999", "-12345.67", "true", false},
 
-		{T_GREATER, "sNaN", "1", "false", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_GREATER, "sNaN", "1", "false", true},    // Invalid_operation      because of sNan (signaling NaN)
+		{T_GREATER, "sNaN456", "1", "false", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_GREATER, "NaN", "NaN", "false", false},
 		{T_GREATER, "NaN", "123", "false", false},
+		{T_GREATER, "NaN456", "123", "false", false},
 		{T_GREATER, "NaN", "Inf", "false", false},
 		{T_GREATER, "123", "NaN", "false", false},
 		{T_GREATER, "Inf", "NaN", "false", false},
@@ -546,9 +572,11 @@ func Test_operations(t *testing.T) {
 		{T_GREATER, "-12345.67000", "-12345.67", "false", false},
 		{T_GREATER, "-12345.669999", "-12345.67", "true", false},
 
-		{T_GREATEREQUAL, "sNaN", "1", "false", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_GREATEREQUAL, "sNaN", "1", "false", true},    // Invalid_operation      because of sNan (signaling NaN)
+		{T_GREATEREQUAL, "sNaN456", "1", "false", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_GREATEREQUAL, "NaN", "NaN", "false", false},
 		{T_GREATEREQUAL, "NaN", "123", "false", false},
+		{T_GREATEREQUAL, "NaN456", "123", "false", false},
 		{T_GREATEREQUAL, "NaN", "Inf", "false", false},
 		{T_GREATEREQUAL, "123", "NaN", "false", false},
 		{T_GREATEREQUAL, "Inf", "NaN", "false", false},
@@ -565,9 +593,11 @@ func Test_operations(t *testing.T) {
 		{T_GREATEREQUAL, "-12345.67000", "-12345.67", "true", false},
 		{T_GREATEREQUAL, "-12345.669999", "-12345.67", "true", false},
 
-		{T_EQUAL, "sNaN", "1", "false", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_EQUAL, "sNaN", "1", "false", true},    // Invalid_operation      because of sNan (signaling NaN)
+		{T_EQUAL, "sNaN456", "1", "false", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_EQUAL, "NaN", "NaN", "false", false},
 		{T_EQUAL, "NaN", "123", "false", false},
+		{T_EQUAL, "NaN456", "123", "false", false},
 		{T_EQUAL, "NaN", "Inf", "false", false},
 		{T_EQUAL, "123", "NaN", "false", false},
 		{T_EQUAL, "Inf", "NaN", "false", false},
@@ -584,9 +614,11 @@ func Test_operations(t *testing.T) {
 		{T_EQUAL, "-12345.67000", "-12345.67", "true", false},
 		{T_EQUAL, "-12345.669999", "-12345.67", "false", false},
 
-		{T_LESSEQUAL, "sNaN", "1", "false", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_LESSEQUAL, "sNaN", "1", "false", true},    // Invalid_operation      because of sNan (signaling NaN)
+		{T_LESSEQUAL, "sNaN456", "1", "false", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_LESSEQUAL, "NaN", "NaN", "false", false},
 		{T_LESSEQUAL, "NaN", "123", "false", false},
+		{T_LESSEQUAL, "NaN456", "123", "false", false},
 		{T_LESSEQUAL, "NaN", "Inf", "false", false},
 		{T_LESSEQUAL, "123", "NaN", "false", false},
 		{T_LESSEQUAL, "Inf", "NaN", "false", false},
@@ -603,9 +635,11 @@ func Test_operations(t *testing.T) {
 		{T_LESSEQUAL, "-12345.67000", "-12345.67", "true", false},
 		{T_LESSEQUAL, "-12345.669999", "-12345.67", "false", false},
 
-		{T_LESS, "sNaN", "1", "false", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_LESS, "sNaN", "1", "false", true},    // Invalid_operation      because of sNan (signaling NaN)
+		{T_LESS, "sNaN456", "1", "false", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_LESS, "NaN", "NaN", "false", false},
 		{T_LESS, "NaN", "123", "false", false},
+		{T_LESS, "NaN456", "123", "false", false},
 		{T_LESS, "NaN", "Inf", "false", false},
 		{T_LESS, "123", "NaN", "false", false},
 		{T_LESS, "Inf", "NaN", "false", false},
@@ -622,7 +656,10 @@ func Test_operations(t *testing.T) {
 		{T_LESS, "-12345.67000", "-12345.67", "false", false},
 		{T_LESS, "-12345.669999", "-12345.67", "false", false},
 
+		{T_ISFINITE, "sNaN", "", "false", false},
+		{T_ISFINITE, "sNaN456", "", "false", false},
 		{T_ISFINITE, "NaN", "", "false", false},
+		{T_ISFINITE, "NaN456", "", "false", false},
 		{T_ISFINITE, "Inf", "", "false", false},
 		{T_ISFINITE, "-Inf", "", "false", false},
 		{T_ISFINITE, "0.0000", "", "true", false},
@@ -633,7 +670,10 @@ func Test_operations(t *testing.T) {
 		{T_ISFINITE, "12.34e5", "", "true", false},
 		{T_ISFINITE, maxquad, "", "true", false},
 
+		{T_ISINTEGER, "sNaN", "", "false", false},
+		{T_ISINTEGER, "sNaN456", "", "false", false},
 		{T_ISINTEGER, "NaN", "", "false", false},
+		{T_ISINTEGER, "NaN456", "", "false", false},
 		{T_ISINTEGER, "Inf", "", "false", false},
 		{T_ISINTEGER, "-Inf", "", "false", false},
 		{T_ISINTEGER, "0", "", "true", false},
@@ -650,7 +690,10 @@ func Test_operations(t *testing.T) {
 		{T_ISINTEGER, maxquad, "", "false", false},
 		{T_ISINTEGER, "1e3", "", "false", false},
 
+		{T_ISINFINITE, "sNaN", "", "false", false},
+		{T_ISINFINITE, "sNaN456", "", "false", false},
 		{T_ISINFINITE, "NaN", "", "false", false},
+		{T_ISINFINITE, "NaN456", "", "false", false},
 		{T_ISINFINITE, "Inf", "", "true", false},
 		{T_ISINFINITE, "-Inf", "", "true", false},
 		{T_ISINFINITE, "0.0000", "", "false", false},
@@ -661,7 +704,10 @@ func Test_operations(t *testing.T) {
 		{T_ISINFINITE, "12.34e5", "", "false", false},
 		{T_ISINFINITE, maxquad, "", "false", false},
 
+		{T_ISNAN, "sNaN", "", "true", false},
+		{T_ISNAN, "sNaN456", "", "true", false},
 		{T_ISNAN, "NaN", "", "true", false},
+		{T_ISNAN, "NaN456", "", "true", false},
 		{T_ISNAN, "Inf", "", "false", false},
 		{T_ISNAN, "-Inf", "", "false", false},
 		{T_ISNAN, "0.0000", "", "false", false},
@@ -672,7 +718,10 @@ func Test_operations(t *testing.T) {
 		{T_ISNAN, "12.34e5", "", "false", false},
 		{T_ISNAN, maxquad, "", "false", false},
 
+		{T_ISPOSITIVE, "sNaN", "", "false", false},
+		{T_ISPOSITIVE, "sNaN456", "", "false", false},
 		{T_ISPOSITIVE, "NaN", "", "false", false},
+		{T_ISPOSITIVE, "NaN456", "", "false", false},
 		{T_ISPOSITIVE, "Inf", "", "true", false},
 		{T_ISPOSITIVE, "-Inf", "", "false", false},
 		{T_ISPOSITIVE, "0.0000", "", "false", false},
@@ -683,7 +732,10 @@ func Test_operations(t *testing.T) {
 		{T_ISPOSITIVE, "12.34e5", "", "true", false},
 		{T_ISPOSITIVE, maxquad, "", "true", false},
 
+		{T_ISZERO, "sNaN", "", "false", false},
+		{T_ISZERO, "sNaN456", "", "false", false},
 		{T_ISZERO, "NaN", "", "false", false},
+		{T_ISZERO, "NaN456", "", "false", false},
 		{T_ISZERO, "Inf", "", "false", false},
 		{T_ISZERO, "-Inf", "", "false", false},
 		{T_ISZERO, "0.0000", "", "true", false},
@@ -694,7 +746,11 @@ func Test_operations(t *testing.T) {
 		{T_ISZERO, "12.34e5", "", "false", false},
 		{T_ISZERO, maxquad, "", "false", false},
 
+		{T_ISNEGATIVE, "sNaN", "", "false", false},
+		{T_ISNEGATIVE, "sNaN456", "", "false", false},
 		{T_ISNEGATIVE, "NaN", "", "false", false},
+		{T_ISNEGATIVE, "NaN456", "", "false", false},
+		{T_ISNEGATIVE, "-NaN", "", "false", false},
 		{T_ISNEGATIVE, "Inf", "", "false", false},
 		{T_ISNEGATIVE, "-Inf", "", "true", false},
 		{T_ISNEGATIVE, "0.0000", "", "false", false},
@@ -705,9 +761,15 @@ func Test_operations(t *testing.T) {
 		{T_ISNEGATIVE, "12.34e5", "", "false", false},
 		{T_ISNEGATIVE, maxquad, "", "false", false},
 
-		{T_MAX, "sNaN", "1", "NaN", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_MAX, "sNaN", "1", "NaN", true},       // Invalid_operation      because of sNan (signaling NaN)
+		{T_MAX, "sNaN456", "1", "NaN456", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_MAX, "NaN", "NaN", "NaN", false},
+		{T_MAX, "NaN456", "NaN", "NaN456", false},
+		{T_MAX, "NaN", "NaN456", "NaN", false},
+		{T_MAX, "NaN789", "NaN456", "NaN789", false},
+		{T_MAX, "NaN456", "NaN789", "NaN456", false},
 		{T_MAX, "NaN", "123", "123", false},
+		{T_MAX, "NaN456", "123", "123", false},
 		{T_MAX, "NaN", "Inf", "Infinity", false},
 		{T_MAX, "123", "NaN", "123", false},
 		{T_MAX, "Inf", "NaN", "Infinity", false},
@@ -724,9 +786,11 @@ func Test_operations(t *testing.T) {
 		{T_MAX, "-12345.67000", "-12345.67", "-12345.67000", false},
 		{T_MAX, "-12345.669999", "-12345.67", "-12345.669999", false},
 
-		{T_MIN, "sNaN", "1", "NaN", true}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_MIN, "sNaN", "1", "NaN", true},       // Invalid_operation      because of sNan (signaling NaN)
+		{T_MIN, "sNaN456", "1", "NaN456", true}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_MIN, "NaN", "NaN", "NaN", false},
 		{T_MIN, "NaN", "123", "123", false},
+		{T_MIN, "NaN456", "123", "123", false},
 		{T_MIN, "NaN", "Inf", "Infinity", false},
 		{T_MIN, "123", "NaN", "123", false},
 		{T_MIN, "Inf", "NaN", "Infinity", false},
@@ -743,14 +807,19 @@ func Test_operations(t *testing.T) {
 		{T_MIN, "-12345.67000", "-12345.67", "-12345.67", false},
 		{T_MIN, "-12345.669999", "-12345.67", "-12345.67", false},
 
-		{T_FROMSTRING, "sNaN", "", "sNaN", false}, // sNaN is returned without setting status error flag
+		{T_FROMSTRING, "sNaN", "", "sNaN", false},         // sNaN is returned without setting status error flag
+		{T_FROMSTRING, "sNaN456", "", "sNaN456", false},   // sNaN is returned without setting status error flag
+		{T_FROMSTRING, "-sNaN456", "", "-sNaN456", false}, // sNaN is returned without setting status error flag
 		{T_FROMSTRING, "NaN", "", "NaN", false},
+		{T_FROMSTRING, "-NaN", "", "-NaN", false},
+		{T_FROMSTRING, "-NaN777", "", "-NaN777", false},
 		{T_FROMSTRING, "NaN123", "", "NaN123", false},
 		{T_FROMSTRING, "Inf", "", "Infinity", false},
 		{T_FROMSTRING, "Infinity", "", "Infinity", false},
 		{T_FROMSTRING, "-Inf", "", "-Infinity", false},
-		{T_FROMSTRING, "", "", "NaN", true},    // Conversion_syntax
-		{T_FROMSTRING, "aaa", "", "NaN", true}, // Conversion_syntax
+		{T_FROMSTRING, "", "", "NaN", true},     // Conversion_syntax
+		{T_FROMSTRING, "aaa", "", "NaN", true},  // Conversion_syntax
+		{T_FROMSTRING, "qNaN", "", "NaN", true}, // Conversion_syntax
 		{T_FROMSTRING, "0", "", "0", false},
 		{T_FROMSTRING, "1.0", "", "1.0", false},
 		{T_FROMSTRING, "123.45e-45", "", "1.2345E-43", false},
@@ -836,10 +905,13 @@ func Test_operations(t *testing.T) {
 		{T_TOFLOAT64, "12.345e8", "", "1234500000.000000", false},
 		{T_TOFLOAT64, "1.23e2000", "", "NaN", true}, // Conversion_syntax, because float64 doen's support exponent this large
 
+		{T_QUADTOSTRING, "sNan456", "", "sNaN456", false},
+		{T_QUADTOSTRING, "-sNan456", "", "-sNaN456", false},
 		{T_QUADTOSTRING, "sNan", "", "sNaN", false},
 		{T_QUADTOSTRING, "sNan123", "", "sNaN123", false},
 		{T_QUADTOSTRING, "Nan", "", "NaN", false},
 		{T_QUADTOSTRING, "Nan123", "", "NaN123", false},
+		{T_QUADTOSTRING, "-Nan123", "", "-NaN123", false},
 		{T_QUADTOSTRING, "Inf", "", "Infinity", false},
 		{T_QUADTOSTRING, "-Inf", "", "-Infinity", false},
 		{T_QUADTOSTRING, "0", "", "0", false},
@@ -868,9 +940,13 @@ func Test_operations(t *testing.T) {
 		{T_QUADTOSTRING, "0.0000000000", "", "0E-10", false},
 
 		{T_STRING, "sNan", "", "sNaN", false},
+		{T_STRING, "-sNan", "", "-sNaN", false},
 		{T_STRING, "sNan123", "", "sNaN123", false},
+		{T_STRING, "-sNan123", "", "-sNaN123", false},
 		{T_STRING, "Nan", "", "NaN", false},
+		{T_STRING, "-Nan", "", "-NaN", false},
 		{T_STRING, "Nan123", "", "NaN123", false},
+		{T_STRING, "-Nan123", "", "-NaN123", false},
 		{T_STRING, "Inf", "", "Infinity", false},
 		{T_STRING, "-Inf", "", "-Infinity", false},
 		{T_STRING, "0", "", "0", false},

@@ -26,7 +26,7 @@ They are not meant to be compiled stand-alone, but inside other decQuad.c, etc.
 Tech note 2:
 ------------
 
-By typing "go build -x", we have the confirmation that the proper flags are used ( -fPIC and -pthread ), as shown in the following line from the output:
+By typing "go build -x", we have the confirmation that the proper flags for multithreading are used ( -fPIC and -pthread ), as shown in the following line from the output:
 
 	...
 	gcc -I . -g -O2 -fPIC -m64 -pthread -I $WORK/decnum/_obj/ -o $WORK/decnum/_obj/decNumber.o -c ./decNumber.c
