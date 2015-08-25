@@ -37,7 +37,7 @@ typedef struct Ret_decQuad_t {
 //
 typedef struct Ret_BCD {
   uint32_t   inf_nan;
-  char       BCD[DECQUAD_Pmax];
+  uint8_t    BCD[DECQUAD_Pmax];
   int32_t    exp;
   uint32_t   sign;
 } Ret_BCD;
