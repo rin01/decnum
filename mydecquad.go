@@ -7,7 +7,6 @@ package decnum
 import "C"
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -41,6 +40,19 @@ type Quad struct {
 	val C.decQuad // array of 16 bytes
 }
 
+// Error is an error object returned by method ctx.Error().
+type Error struct {
+	Status Status_t // status contains one or more bit set, that are error flags
+}
+
+func new_Error(status Status_t) *Error {
+	return &Error{Status: status}
+}
+
+func (e *Error) Error() string {
+	return fmt.Sprintf("decnum: %s", e.Status.String())
+}
+
 /************************************************************************/
 /*                                                                      */
 /*                 global constants and variables                       */
@@ -51,19 +63,6 @@ const (
 	DECQUAD_Pmax   = C.DECQUAD_Pmax   // number of digits in coefficient
 	DECQUAD_Bytes  = C.DECQUAD_Bytes  // size in bytes of decQuad
 	DECQUAD_String = C.DECQUAD_String // buffer capacity for C.decQuadToString()
-)
-
-var (
-	ERROR_DEC_UNLISTED             = errors.New("decnum: Unlisted")
-	ERROR_DEC_INVALID_OPERATION    = errors.New("decnum: Invalid operation")
-	ERROR_DEC_DIVISION_BY_ZERO     = errors.New("decnum: Division by zero")
-	ERROR_DEC_OVERFLOW             = errors.New("decnum: Overflow")
-	ERROR_DEC_UNDERFLOW            = errors.New("decnum: Underflow")
-	ERROR_DEC_DIVISION_IMPOSSIBLE  = errors.New("decnum: Division impossible")
-	ERROR_DEC_DIVISION_UNDEFINED   = errors.New("decnum: Division undefined")
-	ERROR_DEC_CONVERSION_SYNTAX    = errors.New("decnum: Conversion syntax")
-	ERROR_DEC_INSUFFICIENT_STORAGE = errors.New("decnum: Insufficient storage")
-	ERROR_DEC_INVALID_CONTEXT      = errors.New("decnum: Invalid Context")
 )
 
 // g_nan, g_zero and g_one are private variable, because else, a user of the package can change their value by doing decnum.G_ZERO = ...
@@ -408,7 +407,7 @@ func (context *Context) Error() error {
 	status = status & ErrorMask // discard informational flags, keep only error flags
 
 	if status != 0 {
-		return fmt.Errorf("decnum error: %s", status.String())
+		return new_Error(status)
 	}
 
 	return nil
