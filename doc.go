@@ -9,8 +9,8 @@ Example of use
 
 	var (
 		ctx decnum.Context
-		a   decnum.Quad  // unlike Go variable, the uninitialized value is not zero, but garbage.
-		b   decnum.Quad  //    so, if you need a variable to be 0, do         x = decnum.Zero()
+		a   decnum.Quad  //    uninitialized value is 0e-6176. It is really zero, but with the highest negative exponent for this type.
+		b   decnum.Quad  //    If you prefer a variable to be 0, that is, 0e0, do      x = decnum.Zero()
 		r   decnum.Quad
 	)
 

@@ -1,7 +1,7 @@
 /*
   This is just a little example to show how to use the decnum package.
 
-  Pass two numbers, or Inf, or Nan, as arguments, and the program will make some computation with it.
+  Pass two numbers, or Inf, or Nan, as arguments, and the program will make some computation with them.
 */
 package main
 
@@ -34,10 +34,10 @@ func main() {
 	fmt.Println(decnum.DecNumber_C_Version())
 	fmt.Println(decnum.DecNumber_C_MACROS()) // just for info about the macros defined in C decQuad module
 
-	//========================= division a/b ==================================
+	//========================= display a, b and r ==================================
 
 	fmt.Println("")
-	fmt.Println("========= division a/b ==========")
+	fmt.Println("========= display a, b and r ==========")
 
 	ctx.InitDefaultQuad() // initialize context with default settings for Quad operations. Essentially, it contains the rounding mode.
 
@@ -57,13 +57,29 @@ func main() {
 	}
 
 	fmt.Println("")
-	fmt.Println("a is:  ", a)
-	fmt.Println("b is:  ", b)
+	fmt.Printf("a is:  %s\n", a)
+	fmt.Printf("b is:  %s\n", b)
 
 	fmt.Println("")
-	fmt.Println("r is:  ", r, "we see that an uninitialized Quad contains garbage.")
+	fmt.Printf("r is:   %s    %s\n", r, "// we see that an uninitialized Quad is 0e-6176, that is, 0.00000000.........000000000.")
+	fmt.Printf("5 + r = %s \n", ctx.Add(ctx.FromString("5"), r)) // 5.00000000..........00000000
+	fmt.Println("")
 
-	r = ctx.Divide(a, b) // but no need to initialize r with decnum.Zero(), because its value is overwritten by the operation
+	r = decnum.Zero()
+	fmt.Println("r = decnum.Zero()") // if you want to have 5 without all fractional 0s, you should initialize r as     r = decnum.Zero()
+	fmt.Printf("r is:   %s\n", r)
+	fmt.Printf("5  + r = %s \n", ctx.Add(ctx.FromString("5"), r)) // result is 5
+	fmt.Println("")
+
+
+	//========================= division a/b ==================================
+
+	fmt.Println("")
+	fmt.Println("========= division a/b ==========")
+
+	ctx.ResetStatus() // clear the status
+
+	r = ctx.Divide(a, b)
 	// ...
 	// you can put other operations here, you will check for error after the series of operations
 	// ...

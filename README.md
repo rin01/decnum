@@ -40,7 +40,9 @@ The other .c and .h files in the directory come from the original C decNumber pa
 
 The code of this Go wrapper is quite easy to read, and the pattern for calling C function is always the same.
 Parameters are always passed from Go to C as value, and in the other direction too.
-Strings are passed as array in struct, so they are passed by value too.
+Strings passed from C to Go are are also passed by value, as array in struct.
+Strings passed from Go to C using C.CString(s).
+
 
 __Installation__:
 
