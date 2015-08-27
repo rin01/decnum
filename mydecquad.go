@@ -645,7 +645,7 @@ func (context *Context) Quantize(a Quad, b Quad) (r Quad) {
 //     If a >  b,        returns CMP_EQUAL
 //     If a or b is Nan, returns CMP_NAN
 //
-// Compare doesn't set status flag, as no error occurs when just reading numbers.
+// Compare usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets Flag_Invalid_operation.
 //
 // Example:
 //
@@ -666,7 +666,7 @@ func (context *Context) Compare(a Quad, b Quad) Cmp_t {
 // Cmp returns true if comparison of a and b complies with comp_mask.
 // It is easier to use than Compare.
 //
-// Cmp doesn't set status flag, as no error occurs when just reading numbers.
+// Cmp usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets Flag_Invalid_operation.
 //
 // Example:
 //
@@ -690,6 +690,8 @@ func (context *Context) Cmp(a Quad, b Quad, comp_mask Cmp_t) bool {
 
 // Greater is same as Cmp(a, b, CMP_GREATER)
 //
+// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets Flag_Invalid_operation.
+//
 func (context *Context) Greater(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
 	assert_sane(context)
@@ -705,6 +707,8 @@ func (context *Context) Greater(a Quad, b Quad) bool {
 }
 
 // GreaterEqual is same as Cmp(a, b, CMP_GREATER|CMP_EQUAL)
+//
+// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets Flag_Invalid_operation.
 //
 func (context *Context) GreaterEqual(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
@@ -722,6 +726,8 @@ func (context *Context) GreaterEqual(a Quad, b Quad) bool {
 
 // Equal is same as Cmp(a, b, CMP_EQUAL)
 //
+// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets Flag_Invalid_operation.
+//
 func (context *Context) Equal(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
 	assert_sane(context)
@@ -738,6 +744,8 @@ func (context *Context) Equal(a Quad, b Quad) bool {
 
 // LessEqual is same as Cmp(a, b, CMP_LESS|CMP_EQUAL)
 //
+// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets Flag_Invalid_operation.
+//
 func (context *Context) LessEqual(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
 	assert_sane(context)
@@ -753,6 +761,8 @@ func (context *Context) LessEqual(a Quad, b Quad) bool {
 }
 
 // Less is same as Cmp(a, b, CMP_LESS)
+//
+// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets Flag_Invalid_operation.
 //
 func (context *Context) Less(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
