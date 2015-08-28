@@ -71,7 +71,6 @@ func main() {
 	fmt.Printf("5  + r = %s \n", ctx.Add(ctx.FromString("5"), r)) // result is 5
 	fmt.Println("")
 
-
 	//========================= division a/b ==================================
 
 	fmt.Println("")

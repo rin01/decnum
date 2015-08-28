@@ -276,7 +276,6 @@ func must_from_string(t *testing.T, ctx *Context, s string, file_path string, li
 		t.Fatalf("Test failed in test file %s for line %s. must_from_string(%s) failed. %s", file_path, line_original, s, ctx.Error())
 	}
 
-/*
 	// we take this occasion to also test the conversion   string --> Quad --> string --> Quad
 
 	q2 := ctx.FromString(q.String())
@@ -285,10 +284,14 @@ func must_from_string(t *testing.T, ctx *Context, s string, file_path string, li
 		t.Fatalf("Test failed in test file %s for line %s. must_from_string(%s) failed. %s", file_path, line_original, s, ctx.Error())
 	}
 
-	if q2 != q {
-		t.Fatalf("q2 %s != q %s", q2, q)
+	if q2.QuadToString() != q.QuadToString() { // in particular, we can have the case    -0 --> "0" --> 0
+		if q2.IsZero() && q.IsZero() { // because FromString() always discard the "-" sign for 0 values. In financial applications, displaying "-0" is strange, and we prefer to avoid it.
+			return q
+		}
+
+		t.Fatalf("q2 %s != q %s     %v   %v", q2, q, q2.QuadToString(), q.QuadToString())
 	}
-*/
+
 	return q
 }
 

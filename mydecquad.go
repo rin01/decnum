@@ -60,8 +60,8 @@ func (e *Error) Error() string {
 /************************************************************************/
 
 const (
-	DECQUAD_Pmax   = C.DECQUAD_Pmax   // number of digits in coefficient
-	DECQUAD_Bytes  = C.DECQUAD_Bytes  // size in bytes of decQuad
+	DECQUAD_Pmax   = C.DECQUAD_Pmax   // number of digits in coefficient == 34
+	DECQUAD_Bytes  = C.DECQUAD_Bytes  // size in bytes of decQuad == 16
 	DECQUAD_String = C.DECQUAD_String // buffer capacity for C.decQuadToString()
 )
 
@@ -173,13 +173,13 @@ const (
 	Flag_Division_impossible  Status_t = C.DEC_Division_impossible  // error flag
 	Flag_Division_undefined   Status_t = C.DEC_Division_undefined   // error flag
 	Flag_Insufficient_storage Status_t = C.DEC_Insufficient_storage // error flag
-	Flag_Inexact              Status_t = C.DEC_Inexact              // informational flag
+	Flag_Inexact              Status_t = C.DEC_Inexact              // informational flag. It is the only informational flag that can be set by Quad operations.
 	Flag_Invalid_context      Status_t = C.DEC_Invalid_context      // error flag
 	Flag_Invalid_operation    Status_t = C.DEC_Invalid_operation    // error flag
 	Flag_Overflow             Status_t = C.DEC_Overflow             // error flag
-	Flag_Clamped              Status_t = C.DEC_Clamped              // informational flag
-	Flag_Rounded              Status_t = C.DEC_Rounded              // informational flag
-	Flag_Subnormal            Status_t = C.DEC_Subnormal            // informational flag
+	Flag_Clamped              Status_t = C.DEC_Clamped              // informational flag. Quad doesn't use it.
+	Flag_Rounded              Status_t = C.DEC_Rounded              // informational flag. Quad doesn't use it.
+	Flag_Subnormal            Status_t = C.DEC_Subnormal            // informational flag. Quad doesn't use it.
 	Flag_Underflow            Status_t = C.DEC_Underflow            // error flag. E.g. 1e-6000/1e1000
 
 	//Flag_Lost_digits          Status_t = C.DEC_Lost_digits        // informational flag. Exists only if DECSUBSET is set, which is not the case by default
@@ -1014,6 +1014,12 @@ var pool = sync.Pool{
 //       It is better to use the method AppendQuad() or String(), which don't use exponential notation for a wider range.
 //       AppendQuad() and String() write a number without exp notation if it can be displayed with at most 34 digits, and an optional fractional point.
 //
+//       Zero values are signed (unlike AppendQuad and String methods):
+//          -0    -->  "-0"
+//          -0.00 -->  "-0.00"
+//
+//       Displaying "-0" is often surprising for the user. That's why AppendQuad and String methods always discard the sign of zero values.
+//
 func (a Quad) QuadToString() string {
 	var (
 		ret_str   C.Ret_str
@@ -1042,6 +1048,10 @@ func (a Quad) QuadToString() string {
 //       Else, falls back on QuadToString(), which will use exponential notation.
 //
 // See also method String(), which calls AppendQuad internally.
+//
+//     Zero values are always positive (unlike QuadToString method):
+//          -0    -->  "0"
+//          -0.00 -->  "0.00"
 //
 func AppendQuad(dst []byte, a Quad) []byte {
 	var (
@@ -1140,6 +1150,10 @@ func AppendQuad(dst []byte, a Quad) []byte {
 // String is the preferred way to display a decQuad number.
 // It calls AppendQuad internally.
 //
+//     Zero values are always positive (unlike QuadToString method):
+//          -0    -->  "0"
+//          -0.00 -->  "0.00"
+//
 func (a Quad) String() string {
 	var buffer []byte
 
@@ -1205,4 +1219,16 @@ func (context *Context) ToFloat64(a Quad) float64 {
 	}
 
 	return val
+}
+
+// Bytes returns the internal byte representation of the Quad.
+// It is not useful, except for educational purpose.
+//
+func (a Quad) Bytes() (res [DECQUAD_Bytes]byte) {
+
+	for i, b := range a.val {
+		res[i] = byte(b)
+	}
+
+	return res
 }
