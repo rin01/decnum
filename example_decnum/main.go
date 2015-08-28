@@ -129,7 +129,7 @@ func main() {
 	comp = ctx.Compare(a, b) // note: Compare doesn't set status flag
 
 	if err := ctx.Error(); err != nil {
-		log.Fatalf("ERROR OCCURED !!!!!!!   %v\n", err)
+		log.Printf("ERROR OCCURED !!!!!!!   %v\n", err)
 	}
 
 	fmt.Printf("comparison of %s and %s is %s\n", a, b, comp)
@@ -201,5 +201,27 @@ func main() {
 
 	fmt.Printf("%s rounded up   is %s\n", a, g_up)
 	fmt.Printf("%s rounded down is %s\n", a, g_down)
+
+	//============================ a.GetExponent() ================================
+
+	fmt.Println("")
+	fmt.Println("========= a.GetExponent() ==========")
+
+	ctx.ResetStatus() // clear the status
+
+	exponent := a.GetExponent()
+
+	switch exponent {
+	case decnum.Exponent_NaN:
+		fmt.Printf("exponent of %s is %s\n", a, "decnum.Exponent_NaN")
+	case decnum.Exponent_sNaN:
+		fmt.Printf("exponent of %s is %s\n", a, "decnum.Exponent_sNaN")
+	case decnum.Exponent_Inf:
+		fmt.Printf("exponent of %s is %s\n", a, "decnum.Exponent_Inf")
+	default:
+		fmt.Printf("exponent of %s is %d\n", a, exponent)
+	}
+
+	fmt.Println("")
 
 }

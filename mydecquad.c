@@ -344,6 +344,13 @@ uint32_t mdq_is_negative(decQuad a) {
   return decQuadIsNegative(&a);
 }
 
+/* get exponent.
+*/
+int32_t mdq_get_exponent(decQuad a) {
+
+  return decQuadGetExponent(&a);
+}
+
 
 /* max.
 */

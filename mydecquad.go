@@ -444,6 +444,14 @@ func (cmp Cmp_t) String() string {
 	}
 }
 
+// GetExponent can return these special values for NaN, sNaN, Infinity.
+const (
+	Exponent_NaN   = C.DECFLOAT_NaN
+	Exponent_sNaN  = C.DECFLOAT_sNaN
+	Exponent_Inf   = C.DECFLOAT_Inf
+	Exponent_MinSp = C.DECFLOAT_MinSp // minimum special value. Special values are all >= Exponent_MinSp
+)
+
 // Zero returns 0 Quad value.
 //
 //     r = Zero()  // assign 0 to the Quad r
@@ -869,6 +877,21 @@ func (a Quad) IsNegative() bool {
 	}
 
 	return false
+}
+
+// GetExponent returns the exponent of a.
+//
+//      The representation of a number is:
+//
+//           (-1)^sign  coefficient * 10^exponent
+//           where coefficient is an integer storing 34 digits.
+//
+// This function returns the exponent.
+// It can returns special values such as Exponent_NaN, Exponent_sNaN or Exponent_Inf if a is NaN, sNaN or Infinity.
+//
+func (a Quad) GetExponent() int32 {
+
+	return int32(C.mdq_get_exponent(a.val))
 }
 
 // Max returns the larger of a and b.
