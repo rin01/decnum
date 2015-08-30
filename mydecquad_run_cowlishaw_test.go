@@ -54,7 +54,7 @@ func process_line(t *testing.T, current_rounding *RoundingMode, file_path string
 
 	ctx.InitDefaultQuad()
 
-	ctx.SetRounding(*current_rounding)
+	ctx.SetRoundingMode(*current_rounding)
 
 	// analyze line
 
@@ -103,7 +103,7 @@ func process_line(t *testing.T, current_rounding *RoundingMode, file_path string
 			t.Fatalf("Unknown rounding mode %s", rounding_mode_string)
 		}
 
-		ctx.SetRounding(*current_rounding)
+		ctx.SetRoundingMode(*current_rounding)
 
 		return
 	}

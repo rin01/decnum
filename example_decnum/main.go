@@ -41,13 +41,13 @@ func main() {
 
 	ctx.InitDefaultQuad() // initialize context with default settings for Quad operations. Essentially, it contains the rounding mode.
 
-	fmt.Printf("rounding: %s\n", ctx.GetRounding()) // display default rounding mode
+	fmt.Printf("rounding: %s\n", ctx.RoundingMode()) // display default rounding mode
 
-	ctx.SetRounding(decnum.RoundUp) // we can change it
-	fmt.Printf("rounding: %s\n", ctx.GetRounding())
+	ctx.SetRoundingMode(decnum.RoundUp) // we can change it
+	fmt.Printf("rounding: %s\n", ctx.RoundingMode())
 
-	ctx.SetRounding(decnum.RoundHalfEven) // we can change it again
-	fmt.Printf("rounding: %s\n", ctx.GetRounding())
+	ctx.SetRoundingMode(decnum.RoundHalfEven) // we can change it again
+	fmt.Printf("rounding: %s\n", ctx.RoundingMode())
 
 	a = ctx.FromString(os.Args[1]) // convert first argument to Quad
 	b = ctx.FromString(os.Args[2]) // convert 2nd argument to Quad
@@ -184,16 +184,16 @@ func main() {
 	var g_up decnum.Quad
 	var g_down decnum.Quad
 
-	ctx.SetRounding(decnum.RoundUp)
-	assert(ctx.GetRounding() == decnum.RoundUp)
+	ctx.SetRoundingMode(decnum.RoundUp)
+	assert(ctx.RoundingMode() == decnum.RoundUp)
 	g_up = ctx.Quantize(a, decnum.One())
 
-	ctx.SetRounding(decnum.RoundDown)
-	assert(ctx.GetRounding() == decnum.RoundDown)
+	ctx.SetRoundingMode(decnum.RoundDown)
+	assert(ctx.RoundingMode() == decnum.RoundDown)
 	g_down = ctx.Quantize(a, decnum.One())
 
-	ctx.SetRounding(decnum.RoundDefault)
-	assert(ctx.GetRounding() == decnum.RoundHalfEven)
+	ctx.SetRoundingMode(decnum.RoundDefault)
+	assert(ctx.RoundingMode() == decnum.RoundHalfEven)
 
 	if err := ctx.Error(); err != nil {
 		log.Printf("ERROR OCCURED !!!!!!!   %v\n", err)
