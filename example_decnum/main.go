@@ -31,8 +31,8 @@ func main() {
 		log.Fatal("2 numbers are required as argument")
 	}
 
-	fmt.Println(decnum.DecNumber_C_Version())
-	fmt.Println(decnum.DecNumber_C_MACROS()) // just for info about the macros defined in C decQuad module
+	fmt.Println(decnum.DecNumberVersion())
+	fmt.Println(decnum.DecNumberMacros()) // just for info about the macros defined in C decQuad module
 
 	//========================= display a, b and r ==================================
 
@@ -43,10 +43,10 @@ func main() {
 
 	fmt.Printf("rounding: %s\n", ctx.GetRounding()) // display default rounding mode
 
-	ctx.SetRounding(decnum.ROUND_UP) // we can change it
+	ctx.SetRounding(decnum.RoundUp) // we can change it
 	fmt.Printf("rounding: %s\n", ctx.GetRounding())
 
-	ctx.SetRounding(decnum.ROUND_HALF_EVEN) // we can change it again
+	ctx.SetRounding(decnum.RoundHalfEven) // we can change it again
 	fmt.Printf("rounding: %s\n", ctx.GetRounding())
 
 	a = ctx.FromString(os.Args[1]) // convert first argument to Quad
@@ -105,7 +105,7 @@ func main() {
 
 	var x int64
 
-	x = ctx.ToInt64(a, decnum.ROUND_HALF_EVEN)
+	x = ctx.ToInt64(a, decnum.RoundHalfEven)
 
 	if err := ctx.Error(); err != nil { // check for errors
 		log.Printf("ERROR OCCURED !!!!!!!   %v\n", err)
@@ -124,7 +124,7 @@ func main() {
 
 	// ...
 
-	var comp decnum.Cmp_t
+	var comp decnum.CmpFlag
 
 	comp = ctx.Compare(a, b) // note: Compare doesn't set status flag
 
@@ -184,16 +184,16 @@ func main() {
 	var g_up decnum.Quad
 	var g_down decnum.Quad
 
-	ctx.SetRounding(decnum.ROUND_UP)
-	assert(ctx.GetRounding() == decnum.ROUND_UP)
+	ctx.SetRounding(decnum.RoundUp)
+	assert(ctx.GetRounding() == decnum.RoundUp)
 	g_up = ctx.Quantize(a, decnum.One())
 
-	ctx.SetRounding(decnum.ROUND_DOWN)
-	assert(ctx.GetRounding() == decnum.ROUND_DOWN)
+	ctx.SetRounding(decnum.RoundDown)
+	assert(ctx.GetRounding() == decnum.RoundDown)
 	g_down = ctx.Quantize(a, decnum.One())
 
-	ctx.SetRounding(decnum.ROUND_DEFAULT)
-	assert(ctx.GetRounding() == decnum.ROUND_HALF_EVEN)
+	ctx.SetRounding(decnum.RoundDefault)
+	assert(ctx.GetRounding() == decnum.RoundHalfEven)
 
 	if err := ctx.Error(); err != nil {
 		log.Printf("ERROR OCCURED !!!!!!!   %v\n", err)
@@ -212,16 +212,15 @@ func main() {
 	exponent := a.GetExponent()
 
 	switch exponent {
-	case decnum.Exponent_NaN:
-		fmt.Printf("exponent of %s is %s\n", a, "decnum.Exponent_NaN")
-	case decnum.Exponent_sNaN:
-		fmt.Printf("exponent of %s is %s\n", a, "decnum.Exponent_sNaN")
-	case decnum.Exponent_Inf:
-		fmt.Printf("exponent of %s is %s\n", a, "decnum.Exponent_Inf")
+	case decnum.ExponentNaN:
+		fmt.Printf("exponent of %s is %s\n", a, "decnum.ExponentNaN")
+	case decnum.ExponentSignalingNaN:
+		fmt.Printf("exponent of %s is %s\n", a, "decnum.ExponentSignalingNaN")
+	case decnum.ExponentInf:
+		fmt.Printf("exponent of %s is %s\n", a, "decnum.ExponentInf")
 	default:
 		fmt.Printf("exponent of %s is %d\n", a, exponent)
 	}
-
 
 	//============================ rounding and truncating ================================
 

@@ -42,10 +42,10 @@ type Quad struct {
 
 // Error is an error object returned by method ctx.Error().
 type Error struct {
-	Status Status_t // status contains one or more bit set, that are error flags
+	Status Status // status contains one or more bit set, that are error flags
 }
 
-func new_Error(status Status_t) *Error {
+func new_Error(status Status) *Error {
 	return &Error{Status: status}
 }
 
@@ -60,9 +60,9 @@ func (e *Error) Error() string {
 /************************************************************************/
 
 const (
-	DECQUAD_Pmax   = C.DECQUAD_Pmax   // number of digits in coefficient == 34
-	DECQUAD_Bytes  = C.DECQUAD_Bytes  // size in bytes of decQuad == 16
-	DECQUAD_String = C.DECQUAD_String // buffer capacity for C.decQuadToString()
+	DecquadPmax   = C.DECQUAD_Pmax   // number of digits in coefficient == 34
+	DecquadBytes  = C.DECQUAD_Bytes  // size in bytes of decQuad == 16
+	DecquadString = C.DECQUAD_String // buffer capacity for C.decQuadToString()
 )
 
 // g_nan, g_zero and g_one are private variable, because else, a user of the package can change their value by doing decnum.G_ZERO = ...
@@ -134,39 +134,39 @@ var (
 func init() {
 	C.mdq_init()
 
-	if DECQUAD_Bytes != 16 { // 16 bytes == 128 bits
+	if DecquadBytes != 16 { // 16 bytes == 128 bits
 		panic("DECQUAD_Bytes != 16")
 	}
 
 	assert(C.DECSUBSET == 0) // because else, we should define Flag_Lost_digits as status flag
 
-	assert(POOL_BUFF_CAPACITY > DECQUAD_Pmax)
-	assert(POOL_BUFF_CAPACITY > DECQUAD_String)
+	assert(pool_buff_capacity > DecquadPmax)
+	assert(pool_buff_capacity > DecquadString)
 
-	// check that ROUND_xxx constants are >= 0, because Round method uses -1 internally, to indicate that the context rounding should be used
+	// check that Roundxxx constants are >= 0, because Round method uses -1 internally, to indicate that the context rounding should be used
 
-	assert(ROUND_CEILING >= 0)
-	assert(ROUND_DOWN >= 0)
-	assert(ROUND_FLOOR >= 0)
-	assert(ROUND_HALF_DOWN >= 0)
-	assert(ROUND_HALF_EVEN >= 0)
-	assert(ROUND_HALF_UP >= 0)
-	assert(ROUND_UP >= 0)
-	assert(ROUND_05UP >= 0)
-	assert(ROUND_DEFAULT >= 0)
+	assert(RoundCeiling >= 0)
+	assert(RoundDown >= 0)
+	assert(RoundFloor >= 0)
+	assert(RoundHalfDown >= 0)
+	assert(RoundHalfEven >= 0)
+	assert(RoundHalfUp >= 0)
+	assert(RoundUp >= 0)
+	assert(Round05Up >= 0)
+	assert(RoundDefault >= 0)
 
 }
 
-// DecNumber_C_Version returns the version of the original C decNumber package.
+// DecNumberVersion returns the version of the original C decNumber package.
 //
-func DecNumber_C_Version() string {
+func DecNumberVersion() string {
 
 	return decNumber_C_version
 }
 
-// DecNumber_C_MACROS returns the values of macros defined in the original C decNumber package.
+// DecNumberMacros returns the values of macros defined in the original C decNumber package.
 //
-func DecNumber_C_MACROS() string {
+func DecNumberMacros() string {
 
 	return decNumber_C_MACROS
 }
@@ -177,64 +177,62 @@ func DecNumber_C_MACROS() string {
 /*                                                                      */
 /************************************************************************/
 
-type Status_t uint32
+type Status uint32
 
 const (
-	Flag_Conversion_syntax    Status_t = C.DEC_Conversion_syntax    // error flag
-	Flag_Division_by_zero     Status_t = C.DEC_Division_by_zero     // error flag
-	Flag_Division_impossible  Status_t = C.DEC_Division_impossible  // error flag
-	Flag_Division_undefined   Status_t = C.DEC_Division_undefined   // error flag
-	Flag_Insufficient_storage Status_t = C.DEC_Insufficient_storage // error flag
-	Flag_Inexact              Status_t = C.DEC_Inexact              // informational flag. It is the only informational flag that can be set by Quad operations.
-	Flag_Invalid_context      Status_t = C.DEC_Invalid_context      // error flag
-	Flag_Invalid_operation    Status_t = C.DEC_Invalid_operation    // error flag
-	Flag_Overflow             Status_t = C.DEC_Overflow             // error flag
-	Flag_Clamped              Status_t = C.DEC_Clamped              // informational flag. Quad doesn't use it.
-	Flag_Rounded              Status_t = C.DEC_Rounded              // informational flag. Quad doesn't use it.
-	Flag_Subnormal            Status_t = C.DEC_Subnormal            // informational flag. Quad doesn't use it.
-	Flag_Underflow            Status_t = C.DEC_Underflow            // error flag. E.g. 1e-6000/1e1000
+	FlagConversionSyntax    Status = C.DEC_Conversion_syntax    // error flag
+	FlagDivisionByZero      Status = C.DEC_Division_by_zero     // error flag
+	FlagDivisionImpossible  Status = C.DEC_Division_impossible  // error flag
+	FlagDivisionUndefined   Status = C.DEC_Division_undefined   // error flag
+	FlagInsufficientStorage Status = C.DEC_Insufficient_storage // error flag
+	FlagInexact             Status = C.DEC_Inexact              // informational flag. It is the only informational flag that can be set by Quad operations.
+	FlagInvalidContext      Status = C.DEC_Invalid_context      // error flag
+	FlagInvalidOperation    Status = C.DEC_Invalid_operation    // error flag
+	FlagOverflow            Status = C.DEC_Overflow             // error flag
+	FlagClamped             Status = C.DEC_Clamped              // informational flag. Quad doesn't use it.
+	FlagRounded             Status = C.DEC_Rounded              // informational flag. Quad doesn't use it.
+	FlagSubnormal           Status = C.DEC_Subnormal            // informational flag. Quad doesn't use it.
+	FlagUnderflow           Status = C.DEC_Underflow            // error flag. E.g. 1e-6000/1e1000
 
-	//Flag_Lost_digits          Status_t = C.DEC_Lost_digits        // informational flag. Exists only if DECSUBSET is set, which is not the case by default
+	//Flag_Lost_digits          Status = C.DEC_Lost_digits        // informational flag. Exists only if DECSUBSET is set, which is not the case by default
 )
 
-const ErrorMask Status_t = C.DEC_Errors // ErrorMask is the bitmask of the error flags, ORed together. After a series of operations, if status & decnum.ErrorMask != 0, an error has occured, e.g. division by 0.
+const ErrorMask Status = C.DEC_Errors // ErrorMask is the bitmask of the error flags, ORed together. After a series of operations, if status & decnum.ErrorMask != 0, an error has occured, e.g. division by 0.
 
 // String representation of a single flag (status with one bit set).
 //
-func (flag Status_t) flag_string() string {
+func (flag Status) flag_string() string {
 
 	if flag == 0 {
 		return ""
 	}
 
 	switch flag {
-	case Flag_Conversion_syntax:
-		return "Conversion_syntax"
-	case Flag_Division_by_zero:
-		return "Division_by_zero"
-	case Flag_Division_impossible:
-		return "Division_impossible"
-	case Flag_Division_undefined:
-		return "Division_undefined"
-	case Flag_Insufficient_storage:
-		return "Insufficient_storage"
-	case Flag_Inexact:
+	case FlagConversionSyntax:
+		return "ConversionSyntax"
+	case FlagDivisionByZero:
+		return "DivisionByZero"
+	case FlagDivisionImpossible:
+		return "DivisionImpossible"
+	case FlagDivisionUndefined:
+		return "DivisionUndefined"
+	case FlagInsufficientStorage:
+		return "InsufficientStorage"
+	case FlagInexact:
 		return "Inexact"
-	case Flag_Invalid_context:
-		return "Invalid_context"
-	case Flag_Invalid_operation:
-		return "Invalid_operation"
-	//case Flag_Lost_digits:
-	//return "Lost_digits"
-	case Flag_Overflow:
+	case FlagInvalidContext:
+		return "InvalidContext"
+	case FlagInvalidOperation:
+		return "InvalidOperation"
+	case FlagOverflow:
 		return "Overflow"
-	case Flag_Clamped:
+	case FlagClamped:
 		return "Clamped"
-	case Flag_Rounded:
+	case FlagRounded:
 		return "Rounded"
-	case Flag_Subnormal:
+	case FlagSubnormal:
 		return "Subnormal"
-	case Flag_Underflow:
+	case FlagUnderflow:
 		return "Underflow"
 	default:
 		return "Unknown status flag"
@@ -244,14 +242,14 @@ func (flag Status_t) flag_string() string {
 // String representation of a status.
 // status can have many flags set.
 //
-func (status Status_t) String() string {
+func (status Status) String() string {
 	var (
 		s    string
-		flag Status_t
+		flag Status
 	)
 
-	for i := Status_t(0); i < 32; i++ {
-		flag = Status_t(0x0001 << i)
+	for i := Status(0); i < 32; i++ {
+		flag = Status(0x0001 << i)
 		if status&flag != 0 {
 			if s == "" {
 				s = flag.flag_string()
@@ -264,40 +262,40 @@ func (status Status_t) String() string {
 	return s
 }
 
-type Round_mode_t int
+type RoundingMode int
 
 // Rounding mode is used if rounding is necessary during an operation.
 const (
-	ROUND_CEILING   Round_mode_t = C.DEC_ROUND_CEILING   // Round towards +Infinity.
-	ROUND_DOWN      Round_mode_t = C.DEC_ROUND_DOWN      // Round towards 0 (truncation).
-	ROUND_FLOOR     Round_mode_t = C.DEC_ROUND_FLOOR     // Round towards –Infinity.
-	ROUND_HALF_DOWN Round_mode_t = C.DEC_ROUND_HALF_DOWN // Round to nearest; if equidistant, round down.
-	ROUND_HALF_EVEN Round_mode_t = C.DEC_ROUND_HALF_EVEN // Round to nearest; if equidistant, round so that the final digit is even.
-	ROUND_HALF_UP   Round_mode_t = C.DEC_ROUND_HALF_UP   // Round to nearest; if equidistant, round up.
-	ROUND_UP        Round_mode_t = C.DEC_ROUND_UP        // Round away from 0.
-	ROUND_05UP      Round_mode_t = C.DEC_ROUND_05UP      // The same as DEC_ROUND_UP, except that rounding up only occurs if the digit to be rounded up is 0 or 5 and after Overflow the result is the same as for DEC_ROUND_DOWN.
-	ROUND_DEFAULT   Round_mode_t = ROUND_HALF_EVEN       // The same as DEC_ROUND_HALF_EVEN.
+	RoundCeiling  RoundingMode = C.DEC_ROUND_CEILING   // Round towards +Infinity.
+	RoundDown     RoundingMode = C.DEC_ROUND_DOWN      // Round towards 0 (truncation).
+	RoundFloor    RoundingMode = C.DEC_ROUND_FLOOR     // Round towards –Infinity.
+	RoundHalfDown RoundingMode = C.DEC_ROUND_HALF_DOWN // Round to nearest; if equidistant, round down.
+	RoundHalfEven RoundingMode = C.DEC_ROUND_HALF_EVEN // Round to nearest; if equidistant, round so that the final digit is even.
+	RoundHalfUp   RoundingMode = C.DEC_ROUND_HALF_UP   // Round to nearest; if equidistant, round up.
+	RoundUp       RoundingMode = C.DEC_ROUND_UP        // Round away from 0.
+	Round05Up     RoundingMode = C.DEC_ROUND_05UP      // The same as RoundUp, except that rounding up only occurs if the digit to be rounded up is 0 or 5 and after Overflow the result is the same as for RoundDown.
+	RoundDefault  RoundingMode = RoundHalfEven         // The same as RoundHalfEven.
 )
 
-func (rounding Round_mode_t) String() string {
+func (rounding RoundingMode) String() string {
 
 	switch rounding {
-	case ROUND_CEILING:
-		return "ROUND_CEILING"
-	case ROUND_DOWN:
-		return "ROUND_DOWN"
-	case ROUND_FLOOR:
-		return "ROUND_FLOOR"
-	case ROUND_HALF_DOWN:
-		return "ROUND_HALF_DOWN"
-	case ROUND_HALF_EVEN:
-		return "ROUND_HALF_EVEN"
-	case ROUND_HALF_UP:
-		return "ROUND_HALF_UP"
-	case ROUND_UP:
-		return "ROUND_UP"
-	case ROUND_05UP:
-		return "ROUND_05UP"
+	case RoundCeiling:
+		return "RoundCeiling"
+	case RoundDown:
+		return "RoundDown"
+	case RoundFloor:
+		return "RoundFloor"
+	case RoundHalfDown:
+		return "RoundHalfDown"
+	case RoundHalfEven:
+		return "RoundHalfEven"
+	case RoundHalfUp:
+		return "RoundHalfUp"
+	case RoundUp:
+		return "RoundUp"
+	case Round05Up:
+		return "Round05Up"
 	default:
 		return "Unknown rounding mode"
 	}
@@ -315,41 +313,26 @@ type Context struct {
 	set C.decContext
 }
 
-type Context_kind_t uint32
-
-const (
-	DEFAULT_DECQUAD Context_kind_t = C.DEC_INIT_DECQUAD // default Context settings for decQuad operations
-)
-
-// initialize is used to initialize a context with default value for rounding mode, and clears status field.
-//
-func (context *Context) initialize(kind Context_kind_t) {
-
-	context.set = C.mdq_context_default(context.set, C.uint32_t(kind))
-
-	context.sane = true
-}
-
 // InitDefaultQuad is used to initialize a context with default value for Quad operations. It sets rounding mode, and clears status field.
 //
 func (context *Context) InitDefaultQuad() {
 
-	context.set = C.mdq_context_default(context.set, C.uint32_t(DEFAULT_DECQUAD))
+	context.set = C.mdq_context_default(context.set, C.DEC_INIT_DECQUAD) // default Context settings for decQuad operations
 
 	context.sane = true
 }
 
 // GetRounding returns the rounding mode of the context.
 //
-func (context *Context) GetRounding() Round_mode_t {
+func (context *Context) GetRounding() RoundingMode {
 	assert_sane(context)
 
-	return Round_mode_t(C.mdq_context_get_rounding(context.set))
+	return RoundingMode(C.mdq_context_get_rounding(context.set))
 }
 
 // SetRounding sets the rounding mode of the context.
 //
-func (context *Context) SetRounding(rounding Round_mode_t) {
+func (context *Context) SetRounding(rounding RoundingMode) {
 	assert_sane(context)
 
 	context.set = C.mdq_context_set_rounding(context.set, C.int(rounding))
@@ -359,7 +342,7 @@ func (context *Context) SetRounding(rounding Round_mode_t) {
 //
 // After a series of operations, the status contains the accumulated errors or informational flags that occurred during all the operations.
 //
-// Beware: the status can contain informational flags, like Flag_Inexact, which is not an error.
+// Beware: the status can contain informational flags, like FlagInexact, which is not an error.
 //
 // So, to find the real errors, you must discard the non-error bits of the status as follows:
 //      status = ctx.Status() & decnum.ErrorMask
@@ -369,17 +352,17 @@ func (context *Context) SetRounding(rounding Round_mode_t) {
 //
 // It is easier to use the context.Error method to check for errors.
 //
-func (context *Context) Status() Status_t {
+func (context *Context) Status() Status {
 	assert_sane(context)
 
-	return Status_t(C.mdq_context_get_status(context.set))
+	return Status(C.mdq_context_get_status(context.set))
 }
 
 // SetStatus sets a status bit in the status of the context.
 //
 // Normally, only library modules use this function. Applications have no reason to set status bits.
 //
-func (context *Context) SetStatus(flag Status_t) {
+func (context *Context) SetStatus(flag Status) {
 	assert_sane(context)
 
 	context.set = C.mdq_context_set_status(context.set, C.uint32_t(flag))
@@ -411,7 +394,7 @@ func (context *Context) ResetStatus() {
 // Before you begin a new series of operations, you must clear the Context status field with ctx.ResetStatus().
 //
 func (context *Context) Error() error {
-	var status Status_t
+	var status Status
 	assert_sane(context)
 
 	status = context.Status()
@@ -431,37 +414,37 @@ func (context *Context) Error() error {
 /*                                                                      */
 /************************************************************************/
 
-type Cmp_t uint32 // result of Compare
+type CmpFlag uint32 // result of Compare
 
 const (
-	CMP_LESS    Cmp_t = C.CMP_LESS    // 1
-	CMP_EQUAL   Cmp_t = C.CMP_EQUAL   // 2
-	CMP_GREATER Cmp_t = C.CMP_GREATER // 4
-	CMP_NAN     Cmp_t = C.CMP_NAN     // 8
+	CmpLess    CmpFlag = C.CMP_LESS    // 1
+	CmpEqual   CmpFlag = C.CMP_EQUAL   // 2
+	CmpGreater CmpFlag = C.CMP_GREATER // 4
+	CmpNaN     CmpFlag = C.CMP_NAN     // 8
 )
 
-func (cmp Cmp_t) String() string {
+func (cmp CmpFlag) String() string {
 
 	switch cmp {
-	case CMP_LESS:
-		return "CMP_LESS"
-	case CMP_EQUAL:
-		return "CMP_EQUAL"
-	case CMP_GREATER:
-		return "CMP_GREATER"
-	case CMP_NAN:
-		return "CMP_NAN"
+	case CmpLess:
+		return "CmpLess"
+	case CmpEqual:
+		return "CmpEqual"
+	case CmpGreater:
+		return "CmpGreater"
+	case CmpNaN:
+		return "CmpNaN"
 	default:
-		return "Unknown Cmp_t"
+		return "Unknown CmpFlag"
 	}
 }
 
 // GetExponent can return these special values for NaN, sNaN, Infinity.
 const (
-	Exponent_NaN   = C.DECFLOAT_NaN
-	Exponent_sNaN  = C.DECFLOAT_sNaN
-	Exponent_Inf   = C.DECFLOAT_Inf
-	Exponent_MinSp = C.DECFLOAT_MinSp // minimum special value. Special values are all >= Exponent_MinSp
+	ExponentNaN          = C.DECFLOAT_NaN
+	ExponentSignalingNaN = C.DECFLOAT_sNaN
+	ExponentInf          = C.DECFLOAT_Inf
+	ExponentMinSpecial   = C.DECFLOAT_MinSp // minimum special value. Special values are all >= Exponent_MinSp
 )
 
 // Zero returns 0 Quad value.
@@ -614,7 +597,7 @@ func (context *Context) Abs(a Quad) (r Quad) {
 //
 // See also Round, RoundMode and Truncate methods, which are easier to use.
 //
-func (context *Context) ToIntegral(a Quad, round Round_mode_t) (r Quad) {
+func (context *Context) ToIntegral(a Quad, round RoundingMode) (r Quad) {
 	var result C.Ret_decQuad_t
 	assert_sane(context)
 
@@ -664,57 +647,57 @@ func (context *Context) Quantize(a Quad, b Quad) (r Quad) {
 
 // Compare compares the value of a and b.
 //
-//     If a <  b,        returns CMP_LESS
-//     If a == b,        returns CMP_GREATER
-//     If a >  b,        returns CMP_EQUAL
-//     If a or b is Nan, returns CMP_NAN
+//     If a <  b,        returns CmpLess
+//     If a == b,        returns CmpGreater
+//     If a >  b,        returns CmpEqual
+//     If a or b is Nan, returns CmpNaN
 //
-// Compare usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets Flag_Invalid_operation.
+// Compare usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets FlagInvalidOperation.
 //
 // Example:
 //
-//     if ctx.Compare(a, b) & (CMP_GREATER|CMP_EQUAL) != 0 { // if a >= b
+//     if ctx.Compare(a, b) & (CmpGreater|CmpEqual) != 0 { // if a >= b
 //         ...
 //     }
 //
-func (context *Context) Compare(a Quad, b Quad) Cmp_t {
+func (context *Context) Compare(a Quad, b Quad) CmpFlag {
 	var result C.Ret_uint32_t
 	assert_sane(context)
 
 	result = C.mdq_compare(a.val, b.val, context.set)
 
 	context.set = result.set
-	return Cmp_t(result.val)
+	return CmpFlag(result.val)
 }
 
-// Cmp returns true if comparison of a and b complies with comp_mask.
+// Cmp returns true if comparison of a and b complies with compMask.
 // It is easier to use than Compare.
 //
-// Cmp usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets Flag_Invalid_operation.
+// Cmp usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets FlagInvalidOperation.
 //
 // Example:
 //
-//     if ctx.Cmp(a, b, CMP_GREATER|CMP_EQUAL) { // if a >= b
+//     if ctx.Cmp(a, b, CmpGreater|CmpEqual) { // if a >= b
 //         ...
 //     }
 //
-func (context *Context) Cmp(a Quad, b Quad, comp_mask Cmp_t) bool {
+func (context *Context) Cmp(a Quad, b Quad, compMask CmpFlag) bool {
 	var result C.Ret_uint32_t
 	assert_sane(context)
 
 	result = C.mdq_compare(a.val, b.val, context.set)
 
 	context.set = result.set
-	if Cmp_t(result.val)&comp_mask != 0 {
+	if CmpFlag(result.val)&compMask != 0 {
 		return true
 	}
 
 	return false
 }
 
-// Greater is same as Cmp(a, b, CMP_GREATER)
+// Greater is same as Cmp(a, b, CmpGreater)
 //
-// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets Flag_Invalid_operation.
+// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets FlagInvalidOperation.
 //
 func (context *Context) Greater(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
@@ -723,16 +706,16 @@ func (context *Context) Greater(a Quad, b Quad) bool {
 	result = C.mdq_compare(a.val, b.val, context.set)
 
 	context.set = result.set
-	if Cmp_t(result.val)&CMP_GREATER != 0 {
+	if CmpFlag(result.val)&CmpGreater != 0 {
 		return true
 	}
 
 	return false
 }
 
-// GreaterEqual is same as Cmp(a, b, CMP_GREATER|CMP_EQUAL)
+// GreaterEqual is same as Cmp(a, b, CmpGreater|CmpEqual)
 //
-// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets Flag_Invalid_operation.
+// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets FlagInvalidOperation.
 //
 func (context *Context) GreaterEqual(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
@@ -741,16 +724,16 @@ func (context *Context) GreaterEqual(a Quad, b Quad) bool {
 	result = C.mdq_compare(a.val, b.val, context.set)
 
 	context.set = result.set
-	if Cmp_t(result.val)&(CMP_GREATER|CMP_EQUAL) != 0 {
+	if CmpFlag(result.val)&(CmpGreater|CmpEqual) != 0 {
 		return true
 	}
 
 	return false
 }
 
-// Equal is same as Cmp(a, b, CMP_EQUAL)
+// Equal is same as Cmp(a, b, CmpEqual)
 //
-// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets Flag_Invalid_operation.
+// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets FlagInvalidOperation.
 //
 func (context *Context) Equal(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
@@ -759,16 +742,16 @@ func (context *Context) Equal(a Quad, b Quad) bool {
 	result = C.mdq_compare(a.val, b.val, context.set)
 
 	context.set = result.set
-	if Cmp_t(result.val)&CMP_EQUAL != 0 {
+	if CmpFlag(result.val)&CmpEqual != 0 {
 		return true
 	}
 
 	return false
 }
 
-// LessEqual is same as Cmp(a, b, CMP_LESS|CMP_EQUAL)
+// LessEqual is same as Cmp(a, b, CmpLess|CmpEqual)
 //
-// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets Flag_Invalid_operation.
+// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets FlagInvalidOperation.
 //
 func (context *Context) LessEqual(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
@@ -777,16 +760,16 @@ func (context *Context) LessEqual(a Quad, b Quad) bool {
 	result = C.mdq_compare(a.val, b.val, context.set)
 
 	context.set = result.set
-	if Cmp_t(result.val)&(CMP_LESS|CMP_EQUAL) != 0 {
+	if CmpFlag(result.val)&(CmpLess|CmpEqual) != 0 {
 		return true
 	}
 
 	return false
 }
 
-// Less is same as Cmp(a, b, CMP_LESS)
+// Less is same as Cmp(a, b, CmpLess)
 //
-// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets Flag_Invalid_operation.
+// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets FlagInvalidOperation.
 //
 func (context *Context) Less(a Quad, b Quad) bool {
 	var result C.Ret_uint32_t
@@ -795,7 +778,7 @@ func (context *Context) Less(a Quad, b Quad) bool {
 	result = C.mdq_compare(a.val, b.val, context.set)
 
 	context.set = result.set
-	if Cmp_t(result.val)&CMP_LESS != 0 {
+	if CmpFlag(result.val)&CmpLess != 0 {
 		return true
 	}
 
@@ -884,7 +867,7 @@ func (a Quad) IsZero() bool {
 	return false
 }
 
-// IsNegative returns true if a < 0 and not Nan.
+// IsNegative returns true if a < 0 and not NaN.
 //
 func (a Quad) IsNegative() bool {
 
@@ -1026,21 +1009,21 @@ func (context *Context) FromInt64(value int64) (r Quad) {
 /*                                                                      */
 /************************************************************************/
 
-const POOL_BUFF_CAPACITY = 50 // capacity of []byte buffer generated by the pool of buffers
+const pool_buff_capacity = 50 // capacity of []byte buffer generated by the pool of buffers
 
 // pool is a pool of byte slice, used by AppendQuad and String.
 //
 // note:
-//    DECQUAD_String     = 43         sign, 34 digits, decimal point, E+xxxx, terminal \0   gives 43
-//    DECQUAD_Pmax       = 34
-//    POOL_BUFF_CAPACITY = 50         just to be sure, it is largely enough
+//    DecquadString      = 43         sign, 34 digits, decimal point, E+xxxx, terminal \0   gives 43
+//    DecquadPmax        = 34
+//    pool_buff_capacity = 50         just to be sure, it is largely enough
 //
-// The pool must return []byte with capacity being at least the largest of DECQUAD_String and DECQUAD_Pmax. We Prefer a capacity of POOL_BUFF_CAPACITY to be sure.
+// The pool must return []byte with capacity being at least the largest of DecquadString and DecquadPmax. We Prefer a capacity of pool_buff_capacity to be sure.
 //
 var pool = sync.Pool{
 	New: func() interface{} {
 		//fmt.Println("---   POOL")
-		return make([]byte, POOL_BUFF_CAPACITY) // POOL_BUFF_CAPACITY is larger than DECQUAD_String and DECQUAD_Pmax. This size is ok for AppendQuad and String methods.
+		return make([]byte, pool_buff_capacity) // pool_buff_capacity is larger than DecquadString and DecquadPmax. This size is ok for AppendQuad and String methods.
 	},
 }
 
@@ -1062,13 +1045,13 @@ var pool = sync.Pool{
 func (a Quad) QuadToString() string {
 	var (
 		ret_str   C.Ret_str
-		str_slice []byte // capacity must be exactly DECQUAD_String
+		str_slice []byte // capacity must be exactly DecquadString
 		s         string
 	)
 
 	ret_str = C.mdq_to_QuadToString(a.val) // may use exponent notation
 
-	str_slice = pool.Get().([]byte)[:DECQUAD_String]
+	str_slice = pool.Get().([]byte)[:DecquadString]
 	defer pool.Put(str_slice)
 
 	for i := 0; i < int(ret_str.length); i++ {
@@ -1095,7 +1078,7 @@ func (a Quad) QuadToString() string {
 func AppendQuad(dst []byte, a Quad) []byte {
 	var (
 		ret_str   C.Ret_str
-		str_slice []byte // length must be exactly DECQUAD_String
+		str_slice []byte // length must be exactly DecquadString
 
 		ret               C.Ret_BCD
 		d                 byte
@@ -1103,19 +1086,19 @@ func AppendQuad(dst []byte, a Quad) []byte {
 		inf_nan           uint32
 		exp               int32
 		sign              uint32
-		BCD_slice         []byte // length must be exactly DECQUAD_Pmax
+		BCD_slice         []byte // length must be exactly DecquadPmax
 
-		buff [DECQUAD_String]byte // enough for      sign    optional "0."    34 digits
+		buff [DecquadString]byte // enough for      sign    optional "0."    34 digits
 	)
 
 	// fill BCD array
 
 	ret = C.mdq_to_BCD(a.val) // sign will be 1 for negative and non-zero number, else, 0. If Inf or Nan, returns an error.
 
-	BCD_slice = pool.Get().([]byte)[:DECQUAD_Pmax]
+	BCD_slice = pool.Get().([]byte)[:DecquadPmax]
 	defer pool.Put(BCD_slice)
 
-	for i := 0; i < DECQUAD_Pmax; i++ {
+	for i := 0; i < DecquadPmax; i++ {
 		BCD_slice[i] = byte(ret.BCD[i])
 	}
 	inf_nan = uint32(ret.inf_nan)
@@ -1124,10 +1107,10 @@ func AppendQuad(dst []byte, a Quad) []byte {
 
 	// if Quad value is not in 34 digits range, or Inf or Nan, we want our function to output the number, or Infinity, or NaN. Falls back on QuadToString.
 
-	if exp > 0 || exp < -DECQUAD_Pmax || inf_nan != 0 {
+	if exp > 0 || exp < -DecquadPmax || inf_nan != 0 {
 		ret_str = C.mdq_to_QuadToString(a.val) // may use exponent notation
 
-		str_slice = pool.Get().([]byte)[:DECQUAD_String]
+		str_slice = pool.Get().([]byte)[:DecquadString]
 		defer pool.Put(str_slice)
 
 		for i := 0; i < int(ret_str.length); i++ {
@@ -1143,7 +1126,7 @@ func AppendQuad(dst []byte, a Quad) []byte {
 
 	i := 0
 
-	integral_part_length := len(BCD_slice) + int(exp) // here, exp is [-DECQUAD_Pmax ... 0]
+	integral_part_length := len(BCD_slice) + int(exp) // here, exp is [-DecquadPmax ... 0]
 
 	BCD_integral_part := BCD_slice[:integral_part_length]
 	BCD_fractional_part := BCD_slice[integral_part_length:]
@@ -1196,7 +1179,7 @@ func AppendQuad(dst []byte, a Quad) []byte {
 func (a Quad) String() string {
 	var buffer []byte
 
-	buffer = pool.Get().([]byte)[:0] // capacity is enough to receive result of C.mdq_to_QuadToString(), and also big enough to receive [sign] + [DECQUAD_Pmax digits] + [fractional dot]
+	buffer = pool.Get().([]byte)[:0] // capacity is enough to receive result of C.mdq_to_QuadToString(), and also big enough to receive [sign] + [DecquadPmax digits] + [fractional dot]
 	defer pool.Put(buffer)
 
 	ss := AppendQuad(buffer[:0], a)
@@ -1213,7 +1196,7 @@ func (a Quad) String() string {
 // ToInt32 returns the int32 value from a.
 // The rounding passed as argument is used, instead of the rounding mode of context which is ignored.
 //
-func (context *Context) ToInt32(a Quad, round Round_mode_t) int32 {
+func (context *Context) ToInt32(a Quad, round RoundingMode) int32 {
 	var result C.Ret_int32_t
 	assert_sane(context)
 
@@ -1226,7 +1209,7 @@ func (context *Context) ToInt32(a Quad, round Round_mode_t) int32 {
 // ToInt64 returns the int64 value from a.
 // The rounding passed as argument is used, instead of the rounding mode of context which is ignored.
 //
-func (context *Context) ToInt64(a Quad, round Round_mode_t) int64 {
+func (context *Context) ToInt64(a Quad, round RoundingMode) int64 {
 	var result C.Ret_int64_t
 	assert_sane(context)
 
@@ -1253,7 +1236,7 @@ func (context *Context) ToFloat64(a Quad) float64 {
 	s = a.String()
 
 	if val, err = strconv.ParseFloat(s, 64); err != nil {
-		context.SetStatus(Flag_Conversion_syntax)
+		context.SetStatus(FlagConversionSyntax)
 		return math.NaN()
 	}
 
@@ -1263,7 +1246,7 @@ func (context *Context) ToFloat64(a Quad) float64 {
 // Bytes returns the internal byte representation of the Quad.
 // It is not useful, except for educational purpose.
 //
-func (a Quad) Bytes() (res [DECQUAD_Bytes]byte) {
+func (a Quad) Bytes() (res [DecquadBytes]byte) {
 
 	for i, b := range a.val {
 		res[i] = byte(b)
@@ -1279,13 +1262,13 @@ func (a Quad) Bytes() (res [DECQUAD_Bytes]byte) {
 /************************************************************************/
 
 // RoundMode rounds (or truncate) 'a', with the mode passed as argument.
-// You must pass a constant ROUND_CEILING, ROUND_HALF_EVEN, etc as argument.
+// You must pass a constant RoundCeiling, RoundHalfEven, etc as argument.
 //
-//  n must be in the range [-35...34]. Else, Invalid_operation flag is set, and NaN is returned.
+//  n must be in the range [-35...34]. Else, Invalid Operation flag is set, and NaN is returned.
 //
 //  ### this method has not been fully tested yet, but it should work. I must write some test to be sure ###
 //
-func (context *Context) RoundMode(a Quad, n int32, round Round_mode_t) (r Quad) {
+func (context *Context) RoundMode(a Quad, n int32, round RoundingMode) (r Quad) {
 	var result C.Ret_decQuad_t
 	assert_sane(context)
 
@@ -1297,7 +1280,7 @@ func (context *Context) RoundMode(a Quad, n int32, round Round_mode_t) (r Quad) 
 
 // Round rounds (or truncate) 'a', with the mode of the context.
 //
-//  n must be in the range [-35...34]. Else, Invalid_operation flag is set, and NaN is returned.
+//  n must be in the range [-35...34]. Else, Invalid Operation flag is set, and NaN is returned.
 //
 //  ### this method has not been fully tested yet, but it should work. I must write some test to be sure ###
 //
@@ -1314,7 +1297,7 @@ func (context *Context) Round(a Quad, n int32) (r Quad) {
 // Truncate truncates 'a'.
 // It is like rounding with ROUND_DOWN.
 //
-//  n must be in the range [-35...34]. Else, Invalid_operation flag is set, and NaN is returned.
+//  n must be in the range [-35...34]. Else, Invalid Operation flag is set, and NaN is returned.
 //
 //  ### this method has not been fully tested yet, but it should work. I must write some test to be sure ###
 //
@@ -1322,7 +1305,7 @@ func (context *Context) Truncate(a Quad, n int32) (r Quad) {
 	var result C.Ret_decQuad_t
 	assert_sane(context)
 
-	result = C.mdq_roundM(a.val, C.int32_t(n), C.int(ROUND_DOWN), context.set)
+	result = C.mdq_roundM(a.val, C.int32_t(n), C.int(RoundDown), context.set)
 
 	context.set = result.set
 	return Quad{val: result.val}

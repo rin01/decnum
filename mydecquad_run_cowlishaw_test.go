@@ -15,7 +15,7 @@ import (
 //
 func Test_cowlishaw(t *testing.T) {
 	var (
-		current_rounding Round_mode_t = ROUND_HALF_EVEN
+		current_rounding RoundingMode = RoundHalfEven
 	)
 
 	dir := "cowlishaw_test_files"
@@ -45,7 +45,7 @@ func Test_cowlishaw(t *testing.T) {
 	}
 }
 
-func process_line(t *testing.T, current_rounding *Round_mode_t, file_path string, line_original string) {
+func process_line(t *testing.T, current_rounding *RoundingMode, file_path string, line_original string) {
 	var (
 		ctx Context
 	)
@@ -84,21 +84,21 @@ func process_line(t *testing.T, current_rounding *Round_mode_t, file_path string
 
 		switch rounding_mode_string {
 		case "ceiling":
-			*current_rounding = ROUND_CEILING
+			*current_rounding = RoundCeiling
 		case "down":
-			*current_rounding = ROUND_DOWN
+			*current_rounding = RoundDown
 		case "floor":
-			*current_rounding = ROUND_FLOOR
+			*current_rounding = RoundFloor
 		case "half_down":
-			*current_rounding = ROUND_HALF_DOWN
+			*current_rounding = RoundHalfDown
 		case "half_even":
-			*current_rounding = ROUND_HALF_EVEN
+			*current_rounding = RoundHalfEven
 		case "half_up":
-			*current_rounding = ROUND_HALF_UP
+			*current_rounding = RoundHalfUp
 		case "up":
-			*current_rounding = ROUND_UP
+			*current_rounding = RoundUp
 		case "05up":
-			*current_rounding = ROUND_05UP
+			*current_rounding = Round05Up
 		default:
 			t.Fatalf("Unknown rounding mode %s", rounding_mode_string)
 		}
@@ -179,13 +179,13 @@ func process_line(t *testing.T, current_rounding *Round_mode_t, file_path string
 		r_comp := ctx.Compare(a, b)
 
 		switch r_comp {
-		case CMP_LESS:
+		case CmpLess:
 			r = ctx.FromInt32(-1)
-		case CMP_EQUAL:
+		case CmpEqual:
 			r = Zero()
-		case CMP_GREATER:
+		case CmpGreater:
 			r = ctx.FromInt32(1)
-		case CMP_NAN:
+		case CmpNaN:
 			r = NaN()
 		default:
 			t.Fatal("impossible")
@@ -298,8 +298,8 @@ func must_from_string(t *testing.T, ctx *Context, s string, file_path string, li
 // return a status value with bits set as described by flags argument.
 // If "--" is encountered, it is the start of a comment, and the function stops parsing flags.
 //
-func get_expected_status(flags []string) Status_t {
-	var status Status_t
+func get_expected_status(flags []string) Status {
+	var status Status
 
 	for _, flag := range flags {
 
@@ -309,31 +309,31 @@ func get_expected_status(flags []string) Status_t {
 
 		switch flag {
 		case "Conversion_syntax":
-			status |= Flag_Conversion_syntax
+			status |= FlagConversionSyntax
 		case "Division_by_zero":
-			status |= Flag_Division_by_zero
+			status |= FlagDivisionByZero
 		case "Division_impossible":
-			status |= Flag_Division_impossible
+			status |= FlagDivisionImpossible
 		case "Division_undefined":
-			status |= Flag_Division_undefined
+			status |= FlagDivisionUndefined
 		case "Insufficient_storage":
-			status |= Flag_Insufficient_storage
+			status |= FlagInsufficientStorage
 		case "Inexact":
-			status |= Flag_Inexact
+			status |= FlagInexact
 		case "Invalid_context":
-			status |= Flag_Invalid_context
+			status |= FlagInvalidContext
 		case "Invalid_operation":
-			status |= Flag_Invalid_operation
+			status |= FlagInvalidOperation
 		case "Overflow":
-			status |= Flag_Overflow
+			status |= FlagOverflow
 		case "Clamped":
-			// status |= Flag_Clamped
+			// status |= FlagClamped
 		case "Rounded":
-			// status |= Flag_Rounded
+			// status |= FlagRounded
 		case "Subnormal":
-			// status |= Flag_Subnormal
+			// status |= FlagSubnormal
 		case "Underflow":
-			status |= Flag_Underflow
+			status |= FlagUnderflow
 		default:
 			panic("Unknown status flag: " + flag)
 		}
