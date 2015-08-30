@@ -1261,14 +1261,14 @@ func (a Quad) Bytes() (res [DecquadBytes]byte) {
 /*                                                                      */
 /************************************************************************/
 
-// RoundMode rounds (or truncate) 'a', with the mode passed as argument.
+// RoundWithMode rounds (or truncate) 'a', with the mode passed as argument.
 // You must pass a constant RoundCeiling, RoundHalfEven, etc as argument.
 //
 //  n must be in the range [-35...34]. Else, Invalid Operation flag is set, and NaN is returned.
 //
 //  ### this method has not been fully tested yet, but it should work. I must write some test to be sure ###
 //
-func (context *Context) RoundMode(a Quad, n int32, rounding RoundingMode) (r Quad) {
+func (context *Context) RoundWithMode(a Quad, n int32, rounding RoundingMode) (r Quad) {
 	var result C.Ret_decQuad_t
 	assert_sane(context)
 
