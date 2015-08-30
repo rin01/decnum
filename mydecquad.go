@@ -339,9 +339,9 @@ func (context *Context) InitDefaultQuad() {
 	context.sane = true
 }
 
-// Rounding returns the rounding mode of the context.
+// GetRounding returns the rounding mode of the context.
 //
-func (context *Context) Rounding() Round_mode_t {
+func (context *Context) GetRounding() Round_mode_t {
 	assert_sane(context)
 
 	return Round_mode_t(C.mdq_context_get_rounding(context.set))

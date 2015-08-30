@@ -1150,6 +1150,6 @@ func Test_operations(t *testing.T) {
 			}
 		}
 
-		assert(ctx.Rounding() == ROUND_HALF_EVEN) // ensure that rounding mode has not been changed by a sample
+		assert(ctx.GetRounding() == ROUND_HALF_EVEN) // ensure that rounding mode has not been changed by a sample
 	}
 }
