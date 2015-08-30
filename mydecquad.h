@@ -112,6 +112,8 @@ Ret_BCD          mdq_to_BCD(decQuad a);
 Ret_int32_t      mdq_to_int32(decQuad a, decContext set, int round);
 Ret_int64_t      mdq_to_int64(decQuad a, decContext set, int round);
 
+Ret_decQuad_t    mdq_roundM(decQuad a, int32_t n, int rounding, decContext set);
+
 
 #endif
 

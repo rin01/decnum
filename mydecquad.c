@@ -2,6 +2,45 @@
 
 
 /************************************************************************/
+/*            global constant variables for Round and Truncate          */
+/************************************************************************/
+
+/* decNumber constants for decQuad rounding.
+
+   It contains
+      - 1e0
+      - 1e-1
+      - 1e-2
+      - ...
+      - 1e-DECQUAD_Pmax        (1e-34)
+*/
+static decQuad G_DECQUAD_QUANTIZER[DECQUAD_Pmax+1];  // 0...34
+
+
+/* decNumber constants for decQuad rounding.
+
+   It contains
+      - 1e0
+      - 1e1
+      - 1e2
+      - ...
+      - 1eDECQUAD_Pmax         (1e34)
+      - 1e(DECQUAD_Pmax+1)     (1e35)
+
+    NOTE: the max index is 35, because rounding      9234567890123456789012345678901234
+                                           with     10000000000000000000000000000000000    (1e34)
+                                           gives    10000000000000000000000000000000000
+
+                                   and rounding      9234567890123456789012345678901234
+                                           with    100000000000000000000000000000000000    (1e35)
+                                           gives                                      0
+
+                                   So, we must allow rounding functions to use an integral part quantizer of 1e35.
+*/
+static decQuad G_DECQUAD_INTEGRAL_PART_QUANTIZER[DECQUAD_Pmax+2];  // 0...35
+
+
+/************************************************************************/
 /*                          init and context                            */
 /************************************************************************/
 
@@ -16,6 +55,11 @@ static decQuad static_one;  // contains 1, only used by mdq_to_int64
 */
 void mdq_init(void) {
 
+  decContext   set;
+  const char  *s;
+  int          i;
+
+
   //----- check DECLITEND -----
 
   if ( decContextTestEndian(1) ) {  // if argument is 0, a warning message is displayed (using printf) if DECLITEND is set incorrectly. If 1, no message is displayed. Returns 0 if correct.
@@ -26,9 +70,66 @@ void mdq_init(void) {
   assert( DECQUAD_Pmax == 34 );             // we have 34 digits max precision.
   assert( DECQUAD_String > DECQUAD_Pmax );  // because Go function quad.AppendQuad()
 
-  // put 1 in static_one
+
+  //----- put 1 in static_one -----
 
   decQuadFromInt32(&static_one, 1); // IMPORTANT: this means that mdq_to_int64 can only be called after Go init() has been run, as it uses static_one. ctx.ToInt32() cannot be called to initialize Go global variables.
+
+
+  //----- fill decContext -----
+
+  decContextDefault(&set, DEC_INIT_DECQUAD);
+
+  if ( decContextGetRounding(&set) != DEC_ROUND_HALF_EVEN ) {
+      fprintf(stderr, "INITIALIZATION mydecquad.c:mdq_init() FAILED: decnum: decContextGetRounding(&set) != DEC_ROUND_HALF_EVEN");
+      exit(1);
+  }
+
+
+  //----- fill G_DECQUAD_QUANTIZER[] -----
+
+  decQuadFromInt32(&G_DECQUAD_QUANTIZER[0], 1);                       //  store  1e0  in G_DECQUAD_QUANTIZER[0]
+
+  assert( decQuadDigits(     &G_DECQUAD_QUANTIZER[0]) == 1 );
+  assert( decQuadGetExponent(&G_DECQUAD_QUANTIZER[0]) == 0 );
+
+  for ( i=1; i<=DECQUAD_Pmax; i++ ) {                                 // in G_DECQUAD_QUANTIZER[1..DECQUAD_Pmax]
+      decQuadCopy(&G_DECQUAD_QUANTIZER[i], &G_DECQUAD_QUANTIZER[0]);
+
+      decQuadSetExponent(&G_DECQUAD_QUANTIZER[i], &set, -i);          // store 1e-1 .. 1e-DECQUAD_Pmax
+  }
+
+  assert( decQuadDigits(     &G_DECQUAD_QUANTIZER[DECQUAD_Pmax]) == 1 );
+  assert( decQuadGetExponent(&G_DECQUAD_QUANTIZER[DECQUAD_Pmax]) == -DECQUAD_Pmax );  // -34
+
+
+  //----- fill G_DECQUAD_INTEGRAL_PART_QUANTIZER[] -----
+
+  decQuadFromInt32(&G_DECQUAD_INTEGRAL_PART_QUANTIZER[0], 1);              //  store  1e0  in G_DECQUAD_INTEGRAL_PART_QUANTIZER[0]
+
+  assert( decQuadDigits(     &G_DECQUAD_INTEGRAL_PART_QUANTIZER[0]) == 1 );
+  assert( decQuadGetExponent(&G_DECQUAD_INTEGRAL_PART_QUANTIZER[0]) == 0 );
+
+  for ( i=1; i<=DECQUAD_Pmax+1; i++ ) {                                    // in G_DECQUAD_INTEGRAL_PART_QUANTIZER[1..DECQUAD_Pmax+1]
+      decQuadCopy(&G_DECQUAD_INTEGRAL_PART_QUANTIZER[i], &G_DECQUAD_INTEGRAL_PART_QUANTIZER[0]);
+
+      decQuadSetExponent(&G_DECQUAD_INTEGRAL_PART_QUANTIZER[i], &set, i);  // store 1e1 .. 1e(DECQUAD_Pmax+1)
+  }
+
+  assert( decQuadDigits(     &G_DECQUAD_INTEGRAL_PART_QUANTIZER[DECQUAD_Pmax])   == 1 );
+  assert( decQuadGetExponent(&G_DECQUAD_INTEGRAL_PART_QUANTIZER[DECQUAD_Pmax])   == DECQUAD_Pmax   );  // 34
+
+  assert( decQuadDigits(     &G_DECQUAD_INTEGRAL_PART_QUANTIZER[DECQUAD_Pmax+1]) == 1 );
+  assert( decQuadGetExponent(&G_DECQUAD_INTEGRAL_PART_QUANTIZER[DECQUAD_Pmax+1]) == DECQUAD_Pmax+1 );  // 35
+
+
+  //----- check for errors or any warning -----
+
+  if ( set.status ) {
+      s = decContextStatusToString(&set);
+      fprintf(stderr, "INITIALIZATION mydecquad.c:mdq_init() FAILED: decNumber quantizer initialization failed. %s\n", s);
+      exit(1);
+  }
 
 }
 
@@ -476,13 +577,13 @@ Ret_decQuad_t mdq_from_double(double value, decContext set) {
 */
 Ret_str mdq_to_QuadToString(decQuad a) {
 
-  Ret_str  ret = {.length = 0};
+  Ret_str  res = {.length = 0};
 
-  decQuadToString(&a, ret.s);
+  decQuadToString(&a, res.s);
 
-  ret.length = strlen(ret.s);
+  res.length = strlen(res.s);
 
-  return ret;
+  return res;
 }
 
 
@@ -498,11 +599,11 @@ Ret_BCD mdq_to_BCD(decQuad a) {
 
   int32_t     exp;
   uint32_t    sign;
-  Ret_BCD     ret = {.inf_nan = 0, .exp = 0, .sign = 0};
+  Ret_BCD     res = {.inf_nan = 0, .exp = 0, .sign = 0};
 
   // convert to BCD
 
-  decQuadToBCD(&a, &exp, ret.BCD);  // this function returns a sign bit, but we don't use it because we don't want -0
+  decQuadToBCD(&a, &exp, res.BCD);  // this function returns a sign bit, but we don't use it because we don't want -0
 
   sign = decQuadIsNegative(&a);     // 0 is never negative
 
@@ -511,17 +612,17 @@ Ret_BCD mdq_to_BCD(decQuad a) {
 
   if ( ! decQuadIsFinite(&a) ) {
       if ( decQuadIsInfinite(&a) ) {
-          ret.inf_nan = MDQ_INFINITE;
+          res.inf_nan = MDQ_INFINITE;
       } else {
-          ret.inf_nan = MDQ_NAN;
+          res.inf_nan = MDQ_NAN;
       }
-      return ret;
+      return res;
   }
 
-  ret.exp      = exp;
-  ret.sign     = sign;
+  res.exp      = exp;
+  res.sign     = sign;
 
-  return ret;
+  return res;
 }
 
 
@@ -554,7 +655,7 @@ Ret_int64_t mdq_to_int64(decQuad a, decContext set, int round) {
   char         a_str[DECQUAD_String];
   char        *tailptr;
   int64_t      r_val;
-  Ret_int64_t  ret;
+  Ret_int64_t  res;
 
 
   /* operation */
@@ -564,16 +665,16 @@ Ret_int64_t mdq_to_int64(decQuad a, decContext set, int round) {
   decQuadQuantize(&a_integral_quantized, &a_integral, &static_one, &set); // for numbers with exponent>0. E.g. change 1e3 to 1000
 
   if (set.status & DEC_Errors) {
-    ret.set = set;
-    ret.val = 0;
-    return ret;
+    res.set = set;
+    res.val = 0;
+    return res;
   }
 
   if (! decQuadIsFinite(&a_integral_quantized)) {
     decContextSetStatus(&set, DEC_Invalid_operation);
-    ret.set = set;
-    ret.val = 0;
-    return ret;
+    res.set = set;
+    res.val = 0;
+    return res;
   }
 
   assert(decQuadGetExponent(&a_integral_quantized) == 0); // in the absence of decQuadQuantize error, the exponent of the result is always equal to that of the model 'static_one'
@@ -586,22 +687,76 @@ Ret_int64_t mdq_to_int64(decQuad a, decContext set, int round) {
 
   if ( errno ) { // in particular, if a_str is an integer that overflows int64
     decContextSetStatus(&set, DEC_Invalid_operation);
-    ret.set = set;
-    ret.val = 0;
-    return ret;
+    res.set = set;
+    res.val = 0;
+    return res;
   }
 
   if ( *tailptr != 0 ) { // may happen for e.g.  123e10, because it parses up to 'e'
     decContextSetStatus(&set, DEC_Invalid_operation);
-    ret.set = set;
-    ret.val = 0;
-    return ret;
+    res.set = set;
+    res.val = 0;
+    return res;
   }
 
-  ret.set = set;
-  ret.val = r_val;
-  return ret;
+  res.set = set;
+  res.val = r_val;
+  return res;
 }
 
+
+/************************************************************************/
+/*                       rounding and truncating                        */
+/************************************************************************/
+
+// rounds a. If rounding < 0, uses context rounding mode.
+// Note: other rounding modes like DEC_ROUND_CEILING, etc, are enum, positive values.
+//
+Ret_decQuad_t mdq_roundM(decQuad a, int32_t n, int rounding, decContext set) {
+
+  Ret_decQuad_t     res;
+  decQuad           r;
+  decQuad          *operation_quantizer;
+  int               rounding_bak;
+
+
+  /* if n is out-of-range, return Invalid_operation */
+
+  if ( n > 34 || n < -35 ) {
+      decContextSetStatus(&set, DEC_Invalid_operation); // add flag to status
+
+      res.val = mdq_nan();
+      res.set = set;
+      return res;
+  }
+
+
+  /* operation */
+
+  if ( rounding >= 0 ) { // if specific rounding
+      rounding_bak = decContextGetRounding(&set);
+      decContextSetRounding(&set, rounding);                           // change rounding mode
+  }
+
+  if ( n >= 0 ) {   // round or truncate fractional part
+      operation_quantizer = &G_DECQUAD_QUANTIZER[n];                   // n is [0..34]
+
+      decQuadQuantize(&res.val, &a, operation_quantizer, &set);        // rounding, e.g. quaantize(1234.5678, 2)  --> 1234.57
+
+  } else {          // n < 0, round or truncate integral part
+      operation_quantizer = &G_DECQUAD_INTEGRAL_PART_QUANTIZER[-n];    // -n is [0..35]
+
+      decQuadQuantize(&r, &a, operation_quantizer, &set);              // rounding, e.g. quaantize(1234.5678, -2) --> 12E2
+      decQuadQuantize(&res.val, &r, &G_DECQUAD_QUANTIZER[0], &set);    // right-shift the number, adding missing 0s on the left. E.g. 12E2 --> 1200E0
+  }
+
+  if ( rounding >= 0 ) { // if specific rounding
+      decContextSetRounding(&set, rounding_bak);                       // restore original rounding
+  }
+
+  res.set = set;
+
+  return res;
+}
 
 

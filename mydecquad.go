@@ -143,6 +143,18 @@ func init() {
 	assert(POOL_BUFF_CAPACITY > DECQUAD_Pmax)
 	assert(POOL_BUFF_CAPACITY > DECQUAD_String)
 
+	// check that ROUND_xxx constants are >= 0, because Round method uses -1 internally, to indicate that the context rounding should be used
+
+	assert(ROUND_CEILING >= 0)
+	assert(ROUND_DOWN >= 0)
+	assert(ROUND_FLOOR >= 0)
+	assert(ROUND_HALF_DOWN >= 0)
+	assert(ROUND_HALF_EVEN >= 0)
+	assert(ROUND_HALF_UP >= 0)
+	assert(ROUND_UP >= 0)
+	assert(ROUND_05UP >= 0)
+	assert(ROUND_DEFAULT >= 0)
+
 }
 
 // DecNumber_C_Version returns the version of the original C decNumber package.
@@ -600,6 +612,8 @@ func (context *Context) Abs(a Quad) (r Quad) {
 //         E.g.     12.345678e2    is     12345678E-4     -->   1235E0
 //                  123e5          is     123E5        remains   123E5
 //
+// See also Round, RoundMode and Truncate methods, which are easier to use.
+//
 func (context *Context) ToIntegral(a Quad, round Round_mode_t) (r Quad) {
 	var result C.Ret_decQuad_t
 	assert_sane(context)
@@ -635,6 +649,8 @@ func (context *Context) ToIntegral(a Quad, round Round_mode_t) (r Quad) {
 //		        123e32 with 1             sets Invalid_operation error flag in status
 //		        123e32 with 1E1           is   1230000000000000000000000000000000E1
 //		        123e32 with 10            sets Invalid_operation error flag in status
+//
+// See also Round, RoundMode and Truncate methods, which are easier to use.
 //
 func (context *Context) Quantize(a Quad, b Quad) (r Quad) {
 	var result C.Ret_decQuad_t
@@ -1254,4 +1270,60 @@ func (a Quad) Bytes() (res [DECQUAD_Bytes]byte) {
 	}
 
 	return res
+}
+
+/************************************************************************/
+/*                                                                      */
+/*                      rounding and truncating                         */
+/*                                                                      */
+/************************************************************************/
+
+// RoundMode rounds (or truncate) 'a', with the mode passed as argument.
+// You must pass a constant ROUND_CEILING, ROUND_HALF_EVEN, etc as argument.
+//
+//  n must be in the range [-35...34]. Else, Invalid_operation flag is set, and NaN is returned.
+//
+//  ### this method has not been fully tested yet, but it should work. I must write some test to be sure ###
+//
+func (context *Context) RoundMode(a Quad, n int32, round Round_mode_t) (r Quad) {
+	var result C.Ret_decQuad_t
+	assert_sane(context)
+
+	result = C.mdq_roundM(a.val, C.int32_t(n), C.int(round), context.set)
+
+	context.set = result.set
+	return Quad{val: result.val}
+}
+
+// Round rounds (or truncate) 'a', with the mode of the context.
+//
+//  n must be in the range [-35...34]. Else, Invalid_operation flag is set, and NaN is returned.
+//
+//  ### this method has not been fully tested yet, but it should work. I must write some test to be sure ###
+//
+func (context *Context) Round(a Quad, n int32) (r Quad) {
+	var result C.Ret_decQuad_t
+	assert_sane(context)
+
+	result = C.mdq_roundM(a.val, C.int32_t(n), -1, context.set)
+
+	context.set = result.set
+	return Quad{val: result.val}
+}
+
+// Truncate truncates 'a'.
+// It is like rounding with ROUND_DOWN.
+//
+//  n must be in the range [-35...34]. Else, Invalid_operation flag is set, and NaN is returned.
+//
+//  ### this method has not been fully tested yet, but it should work. I must write some test to be sure ###
+//
+func (context *Context) Truncate(a Quad, n int32) (r Quad) {
+	var result C.Ret_decQuad_t
+	assert_sane(context)
+
+	result = C.mdq_roundM(a.val, C.int32_t(n), C.int(ROUND_DOWN), context.set)
+
+	context.set = result.set
+	return Quad{val: result.val}
 }

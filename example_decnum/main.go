@@ -174,10 +174,10 @@ func main() {
 		log.Printf("ERROR OCCURED !!!!!!!   %v\n", err)
 	}
 
-	//============================ rounding ================================
+	//============================ quantize ================================
 
 	fmt.Println("")
-	fmt.Println("========= rounding (quantizing) ==========")
+	fmt.Println("========= quantize ==========")
 
 	ctx.ResetStatus() // clear the status
 
@@ -220,6 +220,44 @@ func main() {
 		fmt.Printf("exponent of %s is %s\n", a, "decnum.Exponent_Inf")
 	default:
 		fmt.Printf("exponent of %s is %d\n", a, exponent)
+	}
+
+
+	//============================ rounding and truncating ================================
+
+	fmt.Println("")
+	fmt.Println("========= rounding and truncating ==========")
+
+	ctx.ResetStatus() // clear the status
+
+	var ka decnum.Quad
+	var kb decnum.Quad
+	var kc decnum.Quad
+
+	ka = ctx.Round(a, 2)
+	kb = ctx.Round(a, 0)
+	kc = ctx.Round(a, -2)
+
+	fmt.Printf("ctx.Round(%s,  2)       is %s\n", a, ka)
+	fmt.Printf("ctx.Round(%s,  0)       is %s\n", a, kb)
+	fmt.Printf("ctx.Round(%s, -2)       is %s\n", a, kc)
+
+	if err := ctx.Error(); err != nil {
+		log.Printf("ERROR OCCURED !!!!!!!   %v\n", err)
+	}
+
+	fmt.Println("")
+
+	ka = ctx.Truncate(a, 2)
+	kb = ctx.Truncate(a, 0)
+	kc = ctx.Truncate(a, -2)
+
+	fmt.Printf("ctx.Truncate(%s,  2)    is %s\n", a, ka)
+	fmt.Printf("ctx.Truncate(%s,  0)    is %s\n", a, kb)
+	fmt.Printf("ctx.Truncate(%s, -2)    is %s\n", a, kc)
+
+	if err := ctx.Error(); err != nil {
+		log.Printf("ERROR OCCURED !!!!!!!   %v\n", err)
 	}
 
 	fmt.Println("")
