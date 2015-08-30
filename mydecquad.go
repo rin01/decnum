@@ -597,11 +597,11 @@ func (context *Context) Abs(a Quad) (r Quad) {
 //
 // See also Round, RoundMode and Truncate methods, which are easier to use.
 //
-func (context *Context) ToIntegral(a Quad, round RoundingMode) (r Quad) {
+func (context *Context) ToIntegral(a Quad, rounding RoundingMode) (r Quad) {
 	var result C.Ret_decQuad_t
 	assert_sane(context)
 
-	result = C.mdq_to_integral(a.val, context.set, C.int(round))
+	result = C.mdq_to_integral(a.val, context.set, C.int(rounding))
 
 	context.set = result.set
 	return Quad{val: result.val}
@@ -1196,11 +1196,11 @@ func (a Quad) String() string {
 // ToInt32 returns the int32 value from a.
 // The rounding passed as argument is used, instead of the rounding mode of context which is ignored.
 //
-func (context *Context) ToInt32(a Quad, round RoundingMode) int32 {
+func (context *Context) ToInt32(a Quad, rounding RoundingMode) int32 {
 	var result C.Ret_int32_t
 	assert_sane(context)
 
-	result = C.mdq_to_int32(a.val, context.set, C.int(round))
+	result = C.mdq_to_int32(a.val, context.set, C.int(rounding))
 
 	context.set = result.set
 	return int32(result.val)
@@ -1209,11 +1209,11 @@ func (context *Context) ToInt32(a Quad, round RoundingMode) int32 {
 // ToInt64 returns the int64 value from a.
 // The rounding passed as argument is used, instead of the rounding mode of context which is ignored.
 //
-func (context *Context) ToInt64(a Quad, round RoundingMode) int64 {
+func (context *Context) ToInt64(a Quad, rounding RoundingMode) int64 {
 	var result C.Ret_int64_t
 	assert_sane(context)
 
-	result = C.mdq_to_int64(a.val, context.set, C.int(round))
+	result = C.mdq_to_int64(a.val, context.set, C.int(rounding))
 
 	context.set = result.set
 	return int64(result.val)
@@ -1268,11 +1268,11 @@ func (a Quad) Bytes() (res [DecquadBytes]byte) {
 //
 //  ### this method has not been fully tested yet, but it should work. I must write some test to be sure ###
 //
-func (context *Context) RoundMode(a Quad, n int32, round RoundingMode) (r Quad) {
+func (context *Context) RoundMode(a Quad, n int32, rounding RoundingMode) (r Quad) {
 	var result C.Ret_decQuad_t
 	assert_sane(context)
 
-	result = C.mdq_roundM(a.val, C.int32_t(n), C.int(round), context.set)
+	result = C.mdq_roundM(a.val, C.int32_t(n), C.int(rounding), context.set)
 
 	context.set = result.set
 	return Quad{val: result.val}
