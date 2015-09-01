@@ -8,6 +8,10 @@ http://speleotrove.com/decimal/
 
 I downloaded the decNumber package "International Components for Unicode (ICU)".
 
+
+# WARNING: don't use this package. The API is being completely reworked.
+
+
 ### Documentation of original C decNumber package
 
 Its documentation is here:
