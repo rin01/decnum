@@ -21,10 +21,14 @@ func assert(val bool) {
 	}
 }
 
-// Quad contains a decimal floating-point value, and a status describing the errors that occurred during the generation of the value.
+// Quad contains a 128bits decimal floating-point value, and a status describing the exceptional conditions that occurred during the generation of the value.
+//
+// Exceptional conditions can be errors, like 'DivisionByZero', or just informational flags, like 'Inexact'.
 //
 type Quad C.Quad // array of 16 bytes, + 4 bytes for status field
 
+// Error returns an error if an error flag bit has been set in Quad's status.
+//
 func (a Quad) Error() error {
 	var errorFlags Status
 
@@ -37,6 +41,9 @@ func (a Quad) Error() error {
 	return newError(errorFlags)
 }
 
+// Status returns the status field of the Quad.
+// It contains error bits, but also informational flags, like 'Inexact'.
+//
 func (a Quad) Status() Status {
 
 	return Status(a.status)
@@ -60,24 +67,33 @@ const (
 /*                                                                      */
 /************************************************************************/
 
+// Quad contains a value and a status field.
+// The status field describes the exceptional conditions that occurred during the calculation.
+// During a long calculation series, status bits are set and propagate into the result number.
+// This way, you can check the status of a number after a series of calculation, using Error() method.
+//
 type Status uint32
 
+// These exceptional condition constants are power of two.
+// They are error flags, or informational flags.
+// The only informational flag used by this package is 'Inexact'.
+//
 const (
-	FlagConversionSyntax    Status = C.DEC_Conversion_syntax    // error flag
-	FlagDivisionByZero      Status = C.DEC_Division_by_zero     // error flag
-	FlagDivisionImpossible  Status = C.DEC_Division_impossible  // error flag
-	FlagDivisionUndefined   Status = C.DEC_Division_undefined   // error flag
-	FlagInsufficientStorage Status = C.DEC_Insufficient_storage // error flag
-	FlagInexact             Status = C.DEC_Inexact              // informational flag. It is the only informational flag that can be set by Quad operations.
-	FlagInvalidContext      Status = C.DEC_Invalid_context      // error flag
-	FlagInvalidOperation    Status = C.DEC_Invalid_operation    // error flag
-	FlagOverflow            Status = C.DEC_Overflow             // error flag
-	FlagClamped             Status = C.DEC_Clamped              // informational flag. Quad doesn't use it.
-	FlagRounded             Status = C.DEC_Rounded              // informational flag. Quad doesn't use it.
-	FlagSubnormal           Status = C.DEC_Subnormal            // informational flag. Quad doesn't use it.
-	FlagUnderflow           Status = C.DEC_Underflow            // error flag. E.g. 1e-6000/1e1000
+	ConversionSyntax    Status = C.DEC_Conversion_syntax    // error flag
+	DivisionByZero      Status = C.DEC_Division_by_zero     // error flag
+	DivisionImpossible  Status = C.DEC_Division_impossible  // error flag
+	DivisionUndefined   Status = C.DEC_Division_undefined   // error flag
+	InsufficientStorage Status = C.DEC_Insufficient_storage // error flag
+	Inexact             Status = C.DEC_Inexact              // informational flag. It is the only informational flag that can be set by Quad operations.
+	InvalidContext      Status = C.DEC_Invalid_context      // error flag
+	InvalidOperation    Status = C.DEC_Invalid_operation    // error flag
+	Overflow            Status = C.DEC_Overflow             // error flag
+	Clamped             Status = C.DEC_Clamped              // informational flag. Quad doesn't use it.
+	Rounded             Status = C.DEC_Rounded              // informational flag. Quad doesn't use it.
+	Subnormal           Status = C.DEC_Subnormal            // informational flag. Quad doesn't use it.
+	Underflow           Status = C.DEC_Underflow            // error flag. E.g. 1e-6000/1e1000
 
-	//Flag_Lost_digits          Status = C.DEC_Lost_digits        // informational flag. Exists only if DECSUBSET is set, which is not the case by default
+	//LostDigits          Status = C.DEC_Lost_digits        // informational flag. Exists only if DECSUBSET is set, which is not the case by default
 )
 
 const ErrorMask Status = C.DEC_Errors // ErrorMask is the bitmask of the error flags, ORed together. After a series of operations, if status & decnum.ErrorMask != 0, an error has occured, e.g. division by 0.
@@ -91,31 +107,31 @@ func (flag Status) flagString() string {
 	}
 
 	switch flag {
-	case FlagConversionSyntax:
+	case ConversionSyntax:
 		return "ConversionSyntax"
-	case FlagDivisionByZero:
+	case DivisionByZero:
 		return "DivisionByZero"
-	case FlagDivisionImpossible:
+	case DivisionImpossible:
 		return "DivisionImpossible"
-	case FlagDivisionUndefined:
+	case DivisionUndefined:
 		return "DivisionUndefined"
-	case FlagInsufficientStorage:
+	case InsufficientStorage:
 		return "InsufficientStorage"
-	case FlagInexact:
+	case Inexact:
 		return "Inexact"
-	case FlagInvalidContext:
+	case InvalidContext:
 		return "InvalidContext"
-	case FlagInvalidOperation:
+	case InvalidOperation:
 		return "InvalidOperation"
-	case FlagOverflow:
+	case Overflow:
 		return "Overflow"
-	case FlagClamped:
+	case Clamped:
 		return "Clamped"
-	case FlagRounded:
+	case Rounded:
 		return "Rounded"
-	case FlagSubnormal:
+	case Subnormal:
 		return "Subnormal"
-	case FlagUnderflow:
+	case Underflow:
 		return "Underflow"
 	default:
 		return "Unknown status flag"
@@ -145,11 +161,17 @@ func (status Status) String() string {
 	return s
 }
 
+type QuadError Status
+
+func (e QuadError) Error() string {
+	return fmt.Sprintf("decnum error: %s", e.Error())
+}
+
 // returns an error, describing the status error flags.
 //
 func newError(status Status) error {
 
-	return fmt.Errorf("decnum error: %s", status.String())
+	return QuadError(status)
 }
 
 type RoundingMode int
@@ -211,7 +233,7 @@ func init() {
 		panic("DECQUAD_Bytes != 16")
 	}
 
-	assert(C.DECSUBSET == 0) // because else, we should define Flag_Lost_digits as status flag
+	assert(C.DECSUBSET == 0) // because else, we should define LostDigits as status flag
 
 	assert(poolBuffCapacity > DecquadPmax)
 	assert(poolBuffCapacity > DecquadString)

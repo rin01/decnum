@@ -1,4 +1,3 @@
-
 /*
   Example:
 
@@ -37,7 +36,3 @@
 
 */
 package decnum
-
-
-
-
