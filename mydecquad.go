@@ -21,13 +21,27 @@ func assert(val bool) {
 	}
 }
 
+/************************************************************************/
+/*                                                                      */
+/*                           Quad value and status                      */
+/*                                                                      */
+/************************************************************************/
+
 // Quad contains a 128bits decimal floating-point value, and a status describing the exceptional conditions that occurred during the generation of the value.
 //
 // Exceptional conditions can be errors, like 'DivisionByZero', or just informational flags, like 'Inexact'.
 //
 type Quad C.Quad // array of 16 bytes, + 4 bytes for status field
 
-// Error returns an error if an error flag bit has been set in Quad's status.
+// Status returns the status field of the Quad.
+// It contains error flags, but also informational flags, like 'Inexact'.
+//
+func (a Quad) Status() Status {
+
+	return Status(a.status)
+}
+
+// Error returns an error if an error flag bit has been set in Quad's status field.
 //
 func (a Quad) Error() error {
 	var errorFlags Status
@@ -39,14 +53,6 @@ func (a Quad) Error() error {
 	}
 
 	return newError(errorFlags)
-}
-
-// Status returns the status field of the Quad.
-// It contains error bits, but also informational flags, like 'Inexact'.
-//
-func (a Quad) Status() Status {
-
-	return Status(a.status)
 }
 
 /************************************************************************/
@@ -161,18 +167,30 @@ func (status Status) String() string {
 	return s
 }
 
+// QuadError is the error type used by this package.
+// It is just the Status, cast to QuadError type.
+//
 type QuadError Status
 
+// newError returns an error, containing the status error flags.
+// Informational flags are discarded, only error flags are kept.
+//
+func newError(status Status) error {
+
+	return QuadError(status&ErrorMask)
+}
+
+// Error returns a string describing the error flags.
+//
 func (e QuadError) Error() string {
 	return fmt.Sprintf("decnum error: %s", Status(e).String())
 }
 
-// returns an error, describing the status error flags.
-//
-func newError(status Status) error {
-
-	return QuadError(status)
-}
+/************************************************************************/
+/*                                                                      */
+/*                             rounding mode                            */
+/*                                                                      */
+/************************************************************************/
 
 type RoundingMode int
 
@@ -242,14 +260,12 @@ func init() {
 // DecNumberVersion returns the version of the original C decNumber package.
 //
 func DecNumberVersion() string {
-
 	return decNumberVersion
 }
 
 // DecNumberMacros returns the values of macros defined in the original C decNumber package.
 //
 func DecNumberMacros() string {
-
 	return decNumberMacros
 }
 
@@ -372,8 +388,16 @@ func NaN() (r Quad) {
 //
 //        a = r
 //
-func Copy(a Quad) (r Quad) {
+func Copy(a Quad) Quad {
 
+	return a
+}
+
+// ClearStatus returns a copy of a, whith status field cleared.
+//
+func ClearStatus(a Quad) Quad {
+
+	a.status = 0
 	return a
 }
 
