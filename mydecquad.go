@@ -164,7 +164,7 @@ func (status Status) String() string {
 type QuadError Status
 
 func (e QuadError) Error() string {
-	return fmt.Sprintf("decnum error: %s", e.Error())
+	return fmt.Sprintf("decnum error: %s", Status(e).String())
 }
 
 // returns an error, describing the status error flags.
