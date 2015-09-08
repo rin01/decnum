@@ -32,7 +32,7 @@
 	}
 
 
-  ===== WARNING: THIS PACKAGE IS NOT TESTED YET. DON'T USE IT FOR THE MOMENT =====
+  ===== WARNING: THIS PACKAGE WORKS, BUT API MAY CHANGE A LITTLE. Also, I must add some more tests. =====
 
 */
 package decnum

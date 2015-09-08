@@ -47,7 +47,7 @@ func (a Quad) Status() Status {
 //
 func (a Quad) ErrorStatus() Status {
 
-	return Status(a.status)&ErrorMask
+	return Status(a.status) & ErrorMask
 }
 
 // Error returns an error if an error flag bit has been set in Quad's status field.
@@ -61,7 +61,7 @@ func (a Quad) Error() error {
 		return nil
 	}
 
-	return newError(errorFlags)
+	return errorFlags
 }
 
 /************************************************************************/
@@ -176,23 +176,10 @@ func (status Status) String() string {
 	return s
 }
 
-// QuadError is the error type used by this package.
-// It is just the Status, cast to QuadError type.
-//
-type QuadError Status
-
-// newError returns an error, containing the status error flags.
-// Informational flags are discarded, only error flags are kept.
-//
-func newError(status Status) error {
-
-	return QuadError(status&ErrorMask)
-}
-
 // Error returns a string describing the error flags.
 //
-func (e QuadError) Error() string {
-	return fmt.Sprintf("decnum error: %s", Status(e).String())
+func (status Status) Error() string {
+	return fmt.Sprintf("decnum %s", (status & ErrorMask).String())
 }
 
 /************************************************************************/
@@ -462,7 +449,7 @@ func (a Quad) Mod(b Quad) Quad {
 // Max returns the larger of a and b.
 // If either a or b is NaN then the other argument is the result.
 //
-func (a Quad) Max(b Quad) Quad {
+func Max(a Quad, b Quad) Quad {
 
 	return Quad(C.mdq_max(C.struct_Quad(a), C.struct_Quad(b)))
 }
@@ -470,13 +457,10 @@ func (a Quad) Max(b Quad) Quad {
 // Min returns the smaller of a and b.
 // If either a or b is NaN then the other argument is the result.
 //
-func (a Quad) Min(b Quad) Quad {
+func Min(a Quad, b Quad) Quad {
 
 	return Quad(C.mdq_min(C.struct_Quad(a), C.struct_Quad(b)))
 }
-
-
-
 
 // ToIntegral returns the value of a rounded to an integral value.
 //
@@ -498,7 +482,6 @@ func (a Quad) ToIntegral(rounding RoundingMode) Quad {
 
 	return Quad(C.mdq_to_integral(C.struct_Quad(a), C.int(rounding)))
 }
-
 
 // Quantize rounds a to the same pattern as b.
 // b is just a model, its sign and coefficient value are ignored. Only its exponent is used.
@@ -533,7 +516,6 @@ func (a Quad) Quantize(b Quad) Quad {
 	return Quad(C.mdq_quantize(C.struct_Quad(a), C.struct_Quad(b)))
 }
 
-
 // Abs returns the absolute value of a.
 //
 func (a Quad) Abs() Quad {
@@ -541,13 +523,11 @@ func (a Quad) Abs() Quad {
 	return Quad(C.mdq_abs(C.struct_Quad(a)))
 }
 
-
 /************************************************************************/
 /*                                                                      */
 /*                            IsFinite, etc                             */
 /*                                                                      */
 /************************************************************************/
-
 
 // IsFinite returns true if a is not Infinite, nor Nan.
 //
@@ -985,7 +965,7 @@ func (a Quad) ToInt32(rounding RoundingMode) (int32, error) {
 	result = C.mdq_to_int32(C.struct_Quad(a), C.int(rounding))
 
 	if Status(result.status)&ErrorMask != 0 { // discard informational flags, keep only error flags
-		return 0, newError(Status(result.status) & ErrorMask)
+		return 0, Status(result.status) & ErrorMask
 	}
 
 	return int32(result.val), nil
@@ -1000,7 +980,7 @@ func (a Quad) ToInt64(rounding RoundingMode) (int64, error) {
 	result = C.mdq_to_int64(C.struct_Quad(a), C.int(rounding))
 
 	if Status(result.status)&ErrorMask != 0 { // discard informational flags, keep only error flags
-		return 0, newError(Status(result.status) & ErrorMask)
+		return 0, Status(result.status) & ErrorMask
 	}
 
 	return int64(result.val), nil
@@ -1019,7 +999,7 @@ func (a Quad) ToFloat64() (float64, error) {
 	}
 
 	if val, err = strconv.ParseFloat(a.String(), 64); err != nil {
-		return math.NaN(), err
+		return math.NaN(), InvalidOperation
 	}
 
 	return val, nil

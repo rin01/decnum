@@ -9,7 +9,7 @@ http://speleotrove.com/decimal/
 The downloaded decNumber package is "International Components for Unicode (ICU)" version.
 
 
-# WARNING: don't use this package. The API is being completely reworked.
+# WARNING: this package is brand new. The API has just been completely reworked and may change a little bit. But I think it works.
 
 In November 2015, it should be ok. Be patient...
 

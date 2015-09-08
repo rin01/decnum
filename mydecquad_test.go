@@ -17,7 +17,7 @@ var (
 // converts string to Quad or aborts.
 //
 func must_quad(s string) Quad {
-	var q   Quad
+	var q Quad
 
 	q, _ = FromString(s)
 
@@ -166,7 +166,7 @@ func Test_simple_functions(t *testing.T) {
 
 	b = a
 
-	if b.String() != "123.45"  || b.Error() != nil{
+	if b.String() != "123.45" || b.Error() != nil {
 		t.Fatal("b = a failed")
 	}
 
@@ -176,7 +176,7 @@ func Test_simple_functions(t *testing.T) {
 
 	b = Copy(a)
 
-	if b.String() != "567890.245"  || b.Error() != nil {
+	if b.String() != "567890.245" || b.Error() != nil {
 		t.Fatal("b = Copy(a) failed")
 	}
 
@@ -187,38 +187,38 @@ func Test_operations(t *testing.T) {
 	type Operation_t string
 
 	const (
-		T_NEG            Operation_t = "Neg"
-		T_ADD            Operation_t = "Add"
-		T_SUB            Operation_t = "Sub"
-		T_MUL            Operation_t = "Mul"
-		T_DIV            Operation_t = "Div"
-		T_DIVINT         Operation_t = "DivInt"
-		T_MOD            Operation_t = "Mod"
-		T_MAX            Operation_t = "Max"
-		T_MIN            Operation_t = "Min"
-		T_TOINTEGRAL     Operation_t = "ToIntegral"
-		T_QUANTIZE       Operation_t = "Quantize"
-		T_ABS            Operation_t = "Abs"
-		T_GREATER        Operation_t = "Greater"
-		T_GREATEREQUAL   Operation_t = "GreaterEqual"
-		T_EQUAL          Operation_t = "Equal"
-		T_LESSEQUAL      Operation_t = "LessEqual"
-		T_LESS           Operation_t = "Less"
-		T_ISFINITE       Operation_t = "IsFinite"
-		T_ISINTEGER      Operation_t = "IsInteger"
-		T_ISINFINITE     Operation_t = "IsInfinite"
-		T_ISNAN          Operation_t = "IsNan"
-		T_ISPOSITIVE     Operation_t = "IsPositive"
-		T_ISZERO         Operation_t = "IsZero"
-		T_ISNEGATIVE     Operation_t = "IsNegative"
-		T_FROMSTRING     Operation_t = "FromString"
-		T_FROMINT32      Operation_t = "FromInt32"
-		T_FROMINT64      Operation_t = "FromInt64"
-		T_QUADTOSTRING   Operation_t = "QuadToString"
-		T_STRING         Operation_t = "String"
-		T_TOINT32        Operation_t = "ToInt32"
-		T_TOINT64        Operation_t = "ToInt64"
-		T_TOFLOAT64      Operation_t = "ToFloat64"
+		T_NEG          Operation_t = "Neg"
+		T_ADD          Operation_t = "Add"
+		T_SUB          Operation_t = "Sub"
+		T_MUL          Operation_t = "Mul"
+		T_DIV          Operation_t = "Div"
+		T_DIVINT       Operation_t = "DivInt"
+		T_MOD          Operation_t = "Mod"
+		T_MAX          Operation_t = "Max"
+		T_MIN          Operation_t = "Min"
+		T_TOINTEGRAL   Operation_t = "ToIntegral"
+		T_QUANTIZE     Operation_t = "Quantize"
+		T_ABS          Operation_t = "Abs"
+		T_GREATER      Operation_t = "Greater"
+		T_GREATEREQUAL Operation_t = "GreaterEqual"
+		T_EQUAL        Operation_t = "Equal"
+		T_LESSEQUAL    Operation_t = "LessEqual"
+		T_LESS         Operation_t = "Less"
+		T_ISFINITE     Operation_t = "IsFinite"
+		T_ISINTEGER    Operation_t = "IsInteger"
+		T_ISINFINITE   Operation_t = "IsInfinite"
+		T_ISNAN        Operation_t = "IsNan"
+		T_ISPOSITIVE   Operation_t = "IsPositive"
+		T_ISZERO       Operation_t = "IsZero"
+		T_ISNEGATIVE   Operation_t = "IsNegative"
+		T_FROMSTRING   Operation_t = "FromString"
+		T_FROMINT32    Operation_t = "FromInt32"
+		T_FROMINT64    Operation_t = "FromInt64"
+		T_QUADTOSTRING Operation_t = "QuadToString"
+		T_STRING       Operation_t = "String"
+		T_TOINT32      Operation_t = "ToInt32"
+		T_TOINT64      Operation_t = "ToInt64"
+		T_TOFLOAT64    Operation_t = "ToFloat64"
 	)
 
 	// A decimal number can also represents three special values: Infinity, NaN, and signaling NaN.
@@ -856,7 +856,7 @@ func Test_operations(t *testing.T) {
 		{T_TOFLOAT64, "-12345.250", "", "-12345.250000", 0},
 		{T_TOFLOAT64, "12345678901234", "", "12345678901234.000000", 0},
 		{T_TOFLOAT64, "12.345e8", "", "1234500000.000000", 0},
-		{T_TOFLOAT64, "1.23e2000", "", "NaN", ConversionSyntax}, // Conversion_syntax, because float64 doen's support exponent this large
+		{T_TOFLOAT64, "1.23e2000", "", "NaN", InvalidOperation}, // InvalidOperation, because float64 doen's support exponent this large
 
 		{T_QUADTOSTRING, "sNan456", "", "sNaN456", 0},
 		{T_QUADTOSTRING, "-sNan456", "", "-sNaN456", 0},
@@ -930,118 +930,158 @@ func Test_operations(t *testing.T) {
 
 	for i, sp := range samples {
 		var (
+			a      Quad
+			b      Quad
 			result Quad
-			err error
+			err    error
 			status Status
 			output string // operation output as string
 		)
 
 		switch sp.operation {
 		case T_NEG:
-			result = must_quad(sp.a).Neg()
+			a = must_quad(sp.a)
+			result = a.Neg()
 			status = result.ErrorStatus()
 			output = result.String()
 
 		case T_ADD:
-			result = must_quad(sp.a).Add(must_quad(sp.b))
+			a = must_quad(sp.a)
+			b = must_quad(sp.b)
+			result = a.Add(b)
 			status = result.ErrorStatus()
 			output = result.String()
 
 		case T_SUB:
-			result = must_quad(sp.a).Sub(must_quad(sp.b))
+			a = must_quad(sp.a)
+			b = must_quad(sp.b)
+			result = a.Sub(b)
 			status = result.ErrorStatus()
 			output = result.String()
 
 		case T_MUL:
-			result = must_quad(sp.a).Mul(must_quad(sp.b))
+			a = must_quad(sp.a)
+			b = must_quad(sp.b)
+			result = a.Mul(b)
 			status = result.ErrorStatus()
 			output = result.String()
 
 		case T_DIV:
-			result = must_quad(sp.a).Div(must_quad(sp.b))
+			a = must_quad(sp.a)
+			b = must_quad(sp.b)
+			result = a.Div(b)
 			status = result.ErrorStatus()
 			output = result.String()
 
 		case T_DIVINT:
-			result = must_quad(sp.a).DivInt(must_quad(sp.b))
+			a = must_quad(sp.a)
+			b = must_quad(sp.b)
+			result = a.DivInt(b)
 			status = result.ErrorStatus()
 			output = result.String()
 
 		case T_MOD:
-			result = must_quad(sp.a).Mod(must_quad(sp.b))
+			a = must_quad(sp.a)
+			b = must_quad(sp.b)
+			result = a.Mod(b)
 			status = result.ErrorStatus()
 			output = result.String()
 
 		case T_ABS:
-			result = must_quad(sp.a).Abs()
+			a = must_quad(sp.a)
+			result = a.Abs()
 			status = result.ErrorStatus()
 			output = result.String()
 
 		case T_TOINTEGRAL:
-			result = must_quad(sp.a).ToIntegral(must_rounding(sp.b))
+			a = must_quad(sp.a)
+			result = a.ToIntegral(must_rounding(sp.b))
 			status = result.ErrorStatus()
 			output = result.String()
 
 		case T_QUANTIZE:
-			result = must_quad(sp.a).Quantize(must_quad(sp.b))
+			a = must_quad(sp.a)
+			b = must_quad(sp.b)
+			result = a.Quantize(b)
 			status = result.ErrorStatus()
 			output = result.String()
 
 		case T_GREATER:
-			result_cmp_bool := must_quad(sp.a).Greater(must_quad(sp.b))
+			a = must_quad(sp.a)
+			b = must_quad(sp.b)
+			result_cmp_bool := a.Greater(b)
 			output = bool2string(result_cmp_bool)
 
 		case T_GREATEREQUAL:
-			result_cmp_bool := must_quad(sp.a).GreaterEqual(must_quad(sp.b))
+			a = must_quad(sp.a)
+			b = must_quad(sp.b)
+			result_cmp_bool := a.GreaterEqual(b)
 			output = bool2string(result_cmp_bool)
 
 		case T_EQUAL:
-			result_cmp_bool := must_quad(sp.a).Equal(must_quad(sp.b))
+			a = must_quad(sp.a)
+			b = must_quad(sp.b)
+			result_cmp_bool := a.Equal(b)
 			output = bool2string(result_cmp_bool)
 
 		case T_LESSEQUAL:
-			result_cmp_bool := must_quad(sp.a).LessEqual(must_quad(sp.b))
+			a = must_quad(sp.a)
+			b = must_quad(sp.b)
+			result_cmp_bool := a.LessEqual(b)
 			output = bool2string(result_cmp_bool)
 
 		case T_LESS:
-			result_cmp_bool := must_quad(sp.a).Less(must_quad(sp.b))
+			a = must_quad(sp.a)
+			b = must_quad(sp.b)
+			result_cmp_bool := a.Less(b)
 			output = bool2string(result_cmp_bool)
 
 		case T_ISFINITE:
-			result_cmp_bool := must_quad(sp.a).IsFinite()
+			a = must_quad(sp.a)
+			result_cmp_bool := a.IsFinite()
 			output = bool2string(result_cmp_bool)
 
 		case T_ISINTEGER:
-			result_cmp_bool := must_quad(sp.a).IsInteger()
+			a = must_quad(sp.a)
+			result_cmp_bool := a.IsInteger()
 			output = bool2string(result_cmp_bool)
 
 		case T_ISINFINITE:
-			result_cmp_bool := must_quad(sp.a).IsInfinite()
+			a = must_quad(sp.a)
+			result_cmp_bool := a.IsInfinite()
 			output = bool2string(result_cmp_bool)
 
 		case T_ISNAN:
-			result_cmp_bool := must_quad(sp.a).IsNaN()
+			a = must_quad(sp.a)
+			result_cmp_bool := a.IsNaN()
 			output = bool2string(result_cmp_bool)
 
 		case T_ISPOSITIVE:
-			result_cmp_bool := must_quad(sp.a).IsPositive()
+			a = must_quad(sp.a)
+			result_cmp_bool := a.IsPositive()
 			output = bool2string(result_cmp_bool)
 
 		case T_ISZERO:
-			result_cmp_bool := must_quad(sp.a).IsZero()
+			a = must_quad(sp.a)
+			result_cmp_bool := a.IsZero()
 			output = bool2string(result_cmp_bool)
 
 		case T_ISNEGATIVE:
-			result_cmp_bool := must_quad(sp.a).IsNegative()
+			a = must_quad(sp.a)
+			result_cmp_bool := a.IsNegative()
 			output = bool2string(result_cmp_bool)
 
 		case T_MAX:
-			result = must_quad(sp.a).Max(must_quad(sp.b)) // TODO decnum.Max
+			a = must_quad(sp.a)
+			b = must_quad(sp.b)
+			result = Max(a, b)
 			status = result.ErrorStatus()
 			output = result.String()
 
 		case T_MIN:
-			result = must_quad(sp.a).Min(must_quad(sp.b))
+			a = must_quad(sp.a)
+			b = must_quad(sp.b)
+			result = Min(a, b)
 			status = result.ErrorStatus()
 			output = result.String()
 
@@ -1049,7 +1089,7 @@ func Test_operations(t *testing.T) {
 			result, err = FromString(sp.a)
 			output = result.String()
 			if err != nil {
-				status = Status(err.(QuadError))
+				status = err.(Status)
 			}
 
 		case T_FROMINT32:
@@ -1061,36 +1101,40 @@ func Test_operations(t *testing.T) {
 			output = result.String()
 
 		case T_QUADTOSTRING:
-			output = must_quad(sp.a).QuadToString()
+			a = must_quad(sp.a)
+			output = a.QuadToString()
 
 		case T_STRING:
-			output = must_quad(sp.a).String()
+			a = must_quad(sp.a)
+			output = a.String()
 
 		case T_TOINT32:
-			result_int32, err := must_quad(sp.a).ToInt32(must_rounding(sp.b))
+			a = must_quad(sp.a)
+			result_int32, err := a.ToInt32(must_rounding(sp.b))
 			if err != nil {
-				status = Status(err.(QuadError))
+				status = err.(Status)
 			}
 			output = strconv.Itoa(int(result_int32))
 
 		case T_TOINT64:
-			result_int64, err := must_quad(sp.a).ToInt64(must_rounding(sp.b))
+			a = must_quad(sp.a)
+			result_int64, err := a.ToInt64(must_rounding(sp.b))
 			if err != nil {
-				status = Status(err.(QuadError))
+				status = err.(Status)
 			}
 			output = strconv.Itoa(int(result_int64))
 
 		case T_TOFLOAT64:
-			result_float64, err := must_quad(sp.a).ToFloat64()
+			a = must_quad(sp.a)
+			result_float64, err := a.ToFloat64()
 			if err != nil {
-				//status = Status(err.(QuadError)) // TODO
+				status = err.(Status)
 			}
 			output = strconv.FormatFloat(result_float64, 'f', 6, 64)
 
 		default:
 			panic("operation unknown")
 		}
-
 
 		switch {
 		case sp.expected_error_status != 0: // status with error flags expected
