@@ -61,7 +61,12 @@ func (a Quad) Error() error {
 		return nil
 	}
 
-	return errorFlags
+	return QuadError(errorFlags)
+}
+
+func newError(status Status) QuadError {
+
+	return QuadError(status & ErrorMask)
 }
 
 /************************************************************************/
@@ -176,10 +181,13 @@ func (status Status) String() string {
 	return s
 }
 
+type QuadError Status
+
 // Error returns a string describing the error flags.
 //
-func (status Status) Error() string {
-	return fmt.Sprintf("decnum %s", (status & ErrorMask).String())
+func (e QuadError) Error() string {
+
+	return fmt.Sprintf("decnum: %s", (Status(e) & ErrorMask).String())
 }
 
 /************************************************************************/
@@ -965,7 +973,7 @@ func (a Quad) ToInt32(rounding RoundingMode) (int32, error) {
 	result = C.mdq_to_int32(C.struct_Quad(a), C.int(rounding))
 
 	if Status(result.status)&ErrorMask != 0 { // discard informational flags, keep only error flags
-		return 0, Status(result.status) & ErrorMask
+		return 0, newError(Status(result.status))
 	}
 
 	return int32(result.val), nil
@@ -980,7 +988,7 @@ func (a Quad) ToInt64(rounding RoundingMode) (int64, error) {
 	result = C.mdq_to_int64(C.struct_Quad(a), C.int(rounding))
 
 	if Status(result.status)&ErrorMask != 0 { // discard informational flags, keep only error flags
-		return 0, Status(result.status) & ErrorMask
+		return 0, newError(Status(result.status))
 	}
 
 	return int64(result.val), nil
@@ -999,7 +1007,7 @@ func (a Quad) ToFloat64() (float64, error) {
 	}
 
 	if val, err = strconv.ParseFloat(a.String(), 64); err != nil {
-		return math.NaN(), InvalidOperation
+		return math.NaN(), QuadError(InvalidOperation)
 	}
 
 	return val, nil
