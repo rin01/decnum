@@ -306,6 +306,38 @@ Quad mdq_min(Quad a, Quad b) {
 }
 
 
+/* to integral value.
+*/
+Quad mdq_to_integral(Quad a, int round) {
+  decContext  set;
+  Quad        res;
+
+  decContextDefault(&set, DEC_INIT_DECQUAD);
+  set.status = a.status;
+
+  decQuadToIntegralValue(&res.val, &a.val, &set, round);
+  res.status = decContextGetStatus(&set);
+
+  return res;
+}
+
+
+/* quantize.
+*/
+Quad mdq_quantize(Quad a, Quad b) {
+  decContext  set;
+  Quad        res;
+
+  decContextDefault(&set, DEC_INIT_DECQUAD);
+  set.status = a.status | b.status;
+
+  decQuadQuantize(&res.val, &a.val, &b.val, &set);
+  res.status = decContextGetStatus(&set);
+
+  return res;
+}
+
+
 /* absolute value.
 */
 Quad mdq_abs(Quad a) {
@@ -320,6 +352,11 @@ Quad mdq_abs(Quad a) {
 
   return res;
 }
+
+
+/************************************************************************/
+/*                           is_finite, etc                             */
+/************************************************************************/
 
 
 /* check if a is Finite number.
@@ -393,37 +430,32 @@ int32_t mdq_get_exponent(decQuad a) {
 
 /* compare.
 */
-Ret_uint32_t mdq_compare(Quad a, Quad b) {
+uint32_t mdq_compare(Quad a, Quad b) {
   decContext      set;
   decQuad         cmp_val;
-  Ret_uint32_t    res;
+  uint32_t        res;
 
   decContextDefault(&set, DEC_INIT_DECQUAD);
   set.status = a.status | b.status;
 
 
-  decQuadCompare(&cmp_val, &a.val, &b.val, &set);
-  res.status = decContextGetStatus(&set);
+  decQuadCompare(&cmp_val, &a.val, &b.val, &set); // we don't care about set's status
 
   if ( decQuadIsNaN(&cmp_val) ) {
-      res.val = CMP_NAN;
-      return res;
+      return CMP_NAN;
   }
 
   if ( decQuadIsZero(&cmp_val) ) {
-      res.val = CMP_EQUAL;
-      return res;
+      return CMP_EQUAL;
   }
 
   if ( decQuadIsPositive(&cmp_val) ) {
-      res.val = CMP_GREATER;
-      return res;
+      return CMP_GREATER;
   }
 
   assert( decQuadIsNegative(&cmp_val) );
 
-  res.val = CMP_LESS;
-  return res;
+  return CMP_LESS;
 }
 
 

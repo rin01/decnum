@@ -466,12 +466,79 @@ func (a Quad) Min(b Quad) Quad {
 	return Quad(C.mdq_min(C.struct_Quad(a), C.struct_Quad(b)))
 }
 
+
+
+
+// ToIntegral returns the value of a rounded to an integral value.
+//
+//      The representation of a number is:
+//
+//           (-1)^sign  coefficient * 10^exponent
+//           where coefficient is an integer storing 34 digits.
+//
+//       - If exponent < 0, the least significant digits are discarded, so that new exponent becomes 0.
+//             Internally, it calls Quantize(a, 1E0) with specified rounding.
+//       - If exponent >= 0, the number remains unchanged.
+//
+//         E.g.     12.345678e2    is     12345678E-4     -->   1235E0
+//                  123e5          is     123E5        remains   123E5
+//
+// See also Round, RoundMode and Truncate methods, which are easier to use.
+//
+func (a Quad) ToIntegral(rounding RoundingMode) Quad {
+
+	return Quad(C.mdq_to_integral(C.struct_Quad(a), C.int(rounding)))
+}
+
+
+// Quantize rounds a to the same pattern as b.
+// b is just a model, its sign and coefficient value are ignored. Only its exponent is used.
+// The result is the value of a, but with the same exponent as the pattern b.
+// The rounding of the context is used.
+//
+// You can use this function with the proper rounding to round (e.g. set context rounding mode to ROUND_HALF_EVEN) or truncate (ROUND_DOWN) 'a'.
+//
+//      The representation of a number is:
+//
+//           (-1)^sign  coefficient * 10^exponent
+//           where coefficient is an integer storing 34 digits.
+//
+// Examples:
+//    quantization of 134.6454 with    0.00001    is   134.64540
+//                    134.6454 with    0.00000    is   134.64540     the value of b has no importance
+//                    134.6454 with 1234.56789    is   134.64540     the value of b has no importance
+//                    134.6454 with 0.0001        is   134.6454
+//                    134.6454 with 0.01          is   134.65
+//                    134.6454 with 1             is   135
+//                    134.6454 with 1000000000    is   135           the value of b has no importance
+//                    134.6454 with 1E+2          is   1E+2
+//
+//		        123e32 with 1             sets Invalid_operation error flag in status
+//		        123e32 with 1E1           is   1230000000000000000000000000000000E1
+//		        123e32 with 10            sets Invalid_operation error flag in status
+//
+// See also Round, RoundMode and Truncate methods, which are easier to use.
+//
+func (a Quad) Quantize(b Quad) Quad {
+
+	return Quad(C.mdq_quantize(C.struct_Quad(a), C.struct_Quad(b)))
+}
+
+
 // Abs returns the absolute value of a.
 //
 func (a Quad) Abs() Quad {
 
 	return Quad(C.mdq_abs(C.struct_Quad(a)))
 }
+
+
+/************************************************************************/
+/*                                                                      */
+/*                            IsFinite, etc                             */
+/*                                                                      */
+/************************************************************************/
+
 
 // IsFinite returns true if a is not Infinite, nor Nan.
 //
@@ -589,14 +656,12 @@ func (a Quad) GetExponent() int32 {
 
 // Greater is same as Cmp(a, b, CmpGreater)
 //
-// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets FlagInvalidOperation.
-//
 func (a Quad) Greater(b Quad) bool {
-	var result C.Ret_uint32_t
+	var result C.uint32_t
 
 	result = C.mdq_compare(C.struct_Quad(a), C.struct_Quad(b))
 
-	if CmpFlag(result.val)&CmpGreater != 0 {
+	if CmpFlag(result)&CmpGreater != 0 {
 		return true
 	}
 
@@ -605,14 +670,12 @@ func (a Quad) Greater(b Quad) bool {
 
 // GreaterEqual is same as Cmp(a, b, CmpGreater|CmpEqual)
 //
-// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets FlagInvalidOperation.
-//
 func (a Quad) GreaterEqual(b Quad) bool {
-	var result C.Ret_uint32_t
+	var result C.uint32_t
 
 	result = C.mdq_compare(C.struct_Quad(a), C.struct_Quad(b))
 
-	if CmpFlag(result.val)&(CmpGreater|CmpEqual) != 0 {
+	if CmpFlag(result)&(CmpGreater|CmpEqual) != 0 {
 		return true
 	}
 
@@ -621,14 +684,12 @@ func (a Quad) GreaterEqual(b Quad) bool {
 
 // Equal is same as Cmp(a, b, CmpEqual)
 //
-// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets FlagInvalidOperation.
-//
 func (a Quad) Equal(b Quad) bool {
-	var result C.Ret_uint32_t
+	var result C.uint32_t
 
 	result = C.mdq_compare(C.struct_Quad(a), C.struct_Quad(b))
 
-	if CmpFlag(result.val)&CmpEqual != 0 {
+	if CmpFlag(result)&CmpEqual != 0 {
 		return true
 	}
 
@@ -637,14 +698,12 @@ func (a Quad) Equal(b Quad) bool {
 
 // LessEqual is same as Cmp(a, b, CmpLess|CmpEqual)
 //
-// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets FlagInvalidOperation.
-//
 func (a Quad) LessEqual(b Quad) bool {
-	var result C.Ret_uint32_t
+	var result C.uint32_t
 
 	result = C.mdq_compare(C.struct_Quad(a), C.struct_Quad(b))
 
-	if CmpFlag(result.val)&(CmpLess|CmpEqual) != 0 {
+	if CmpFlag(result)&(CmpLess|CmpEqual) != 0 {
 		return true
 	}
 
@@ -653,14 +712,12 @@ func (a Quad) LessEqual(b Quad) bool {
 
 // Less is same as Cmp(a, b, CmpLess)
 //
-// This function usually doesn't set status flag, except if an argument is sNaN (signaling NaN), which sets FlagInvalidOperation.
-//
 func (a Quad) Less(b Quad) bool {
-	var result C.Ret_uint32_t
+	var result C.uint32_t
 
 	result = C.mdq_compare(C.struct_Quad(a), C.struct_Quad(b))
 
-	if CmpFlag(result.val)&CmpLess != 0 {
+	if CmpFlag(result)&CmpLess != 0 {
 		return true
 	}
 

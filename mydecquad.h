@@ -56,13 +56,6 @@ typedef struct Ret_int32_t {
   uint32_t    status;
 } Ret_int32_t;
 
-// struct used to pass uint32 from C to Go, by value.
-//
-typedef struct Ret_uint32_t {
-  uint32_t    val;
-  uint32_t    status;
-} Ret_uint32_t;
-
 // struct used to pass int64 from C to Go, by value.
 //
 typedef struct Ret_int64_t {
@@ -84,6 +77,8 @@ Quad mdq_divide_integer(Quad a, Quad b);
 Quad mdq_remainder(Quad a, Quad b);
 Quad mdq_max(Quad a, Quad b);
 Quad mdq_min(Quad a, Quad b);
+Quad mdq_to_integral(Quad a, int round);
+Quad mdq_quantize(Quad a, Quad b);
 Quad mdq_abs(Quad a);
 
 uint32_t mdq_is_finite(decQuad a);
@@ -95,7 +90,7 @@ uint32_t mdq_is_zero(decQuad a);
 uint32_t mdq_is_negative(decQuad a);
 int32_t  mdq_get_exponent(decQuad a);
 
-Ret_uint32_t mdq_compare(Quad a, Quad b);
+uint32_t mdq_compare(Quad a, Quad b);
 
 Quad mdq_from_string(char *s);
 Quad mdq_from_int32(int32_t value);
