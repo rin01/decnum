@@ -41,6 +41,15 @@ func (a Quad) Status() Status {
 	return Status(a.status)
 }
 
+// ErrorStatus returns the status field of the Quad.
+// It contains only error flags.
+// Same as a.Status()&ErrorMask
+//
+func (a Quad) ErrorStatus() Status {
+
+	return Status(a.status)&ErrorMask
+}
+
 // Error returns an error if an error flag bit has been set in Quad's status field.
 //
 func (a Quad) Error() error {
