@@ -37,7 +37,7 @@ I have only written the following files:
    - [mydecquad.go](https://github.com/rin01/decnum/blob/master/mydecquad.go)
    - [mydecquad_test.go](https://github.com/rin01/decnum/blob/master/mydecquad_test.go)
    - [mydecquad_run_cowlishaw_test.go](https://github.com/rin01/decnum/blob/master/mydecquad_run_cowlishaw_test.go)
-   - doc.go
+   - [doc.go](https://github.com/rin01/decnum/blob/master/doc.go)
 
 The other .c and .h files in the directory come from the original C decNumber package.
 

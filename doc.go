@@ -95,10 +95,10 @@ This representation is well suited for displaying numbers, but not when using fu
 Test
 
 The test file for decnum package is
-    https://github.com/rin01/decnum/blob/master/mydecquad_test.go
+https://github.com/rin01/decnum/blob/master/mydecquad_test.go
 
 The tests existing in the original decnumber C package have also been run.
-    https://github.com/rin01/decnum/blob/master/mydecquad_run_cowlishaw_test.go
+https://github.com/rin01/decnum/blob/master/mydecquad_run_cowlishaw_test.go
 
 
 Tech note
