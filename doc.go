@@ -45,7 +45,7 @@ Example of use
 			log.Fatalf("ERROR OCCURRED !   %v\n", err)
 		}
 
-		if b, err = decnum.FromString(os.Args[2]); err != nil { // error flags in status can be tested with b.Error()
+		if b, err = decnum.FromString(os.Args[2]); err != nil { // err is same as b.Error()
 			log.Fatalf("ERROR OCCURRED !   %v\n", err)
 		}
 
