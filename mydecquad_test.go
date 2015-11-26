@@ -106,6 +106,21 @@ func must_int64(s string) int64 {
 	return i
 }
 
+// converts string to int or aborts.
+//
+func must_int(s string) int {
+	var (
+		err error
+		i   int64
+	)
+
+	if i, err = strconv.ParseInt(s, 10, 64); err != nil {
+		log.Fatalf("must_int64(\"%s\") failed: %s", s, err)
+	}
+
+	return int(i)
+}
+
 // converts string to float64 or aborts.
 //
 func must_float64(s string) float64 {
@@ -199,11 +214,6 @@ func Test_operations(t *testing.T) {
 		T_TOINTEGRAL   Operation_t = "ToIntegral"
 		T_QUANTIZE     Operation_t = "Quantize"
 		T_ABS          Operation_t = "Abs"
-		T_GREATER      Operation_t = "Greater"
-		T_GREATEREQUAL Operation_t = "GreaterEqual"
-		T_EQUAL        Operation_t = "Equal"
-		T_LESSEQUAL    Operation_t = "LessEqual"
-		T_LESS         Operation_t = "Less"
 		T_ISFINITE     Operation_t = "IsFinite"
 		T_ISINTEGER    Operation_t = "IsInteger"
 		T_ISINFINITE   Operation_t = "IsInfinite"
@@ -211,6 +221,11 @@ func Test_operations(t *testing.T) {
 		T_ISPOSITIVE   Operation_t = "IsPositive"
 		T_ISZERO       Operation_t = "IsZero"
 		T_ISNEGATIVE   Operation_t = "IsNegative"
+		T_GREATER      Operation_t = "Greater"
+		T_GREATEREQUAL Operation_t = "GreaterEqual"
+		T_EQUAL        Operation_t = "Equal"
+		T_LESSEQUAL    Operation_t = "LessEqual"
+		T_LESS         Operation_t = "Less"
 		T_FROMSTRING   Operation_t = "FromString"
 		T_FROMINT32    Operation_t = "FromInt32"
 		T_FROMINT64    Operation_t = "FromInt64"
@@ -219,6 +234,8 @@ func Test_operations(t *testing.T) {
 		T_TOINT32      Operation_t = "ToInt32"
 		T_TOINT64      Operation_t = "ToInt64"
 		T_TOFLOAT64    Operation_t = "ToFloat64"
+		T_ROUND        Operation_t = "Round"
+		T_TRUNCATE     Operation_t = "Truncate"
 	)
 
 	// A decimal number can also represents three special values: Infinity, NaN, and signaling NaN.
@@ -252,6 +269,8 @@ func Test_operations(t *testing.T) {
 		{T_NEG, "-NaN123", "", "-NaN123", 0},
 		{T_NEG, "Inf", "", "-Infinity", 0},
 		{T_NEG, "-Inf", "", "Infinity", 0},
+		{T_NEG, "0.00", "", "0.00", 0},
+		{T_NEG, "0.00E50", "", "0E+48", 0},
 		{T_NEG, "-13256748.9879878", "", "13256748.9879878", 0},
 		{T_NEG, "13256748.9879878", "", "-13256748.9879878", 0},
 		{T_NEG, "-13256748.9879878e456", "", "1.32567489879878E+463", 0},
@@ -420,19 +439,51 @@ func Test_operations(t *testing.T) {
 		{T_MOD, "1e6000", "1e-6000", "NaN", DivisionImpossible}, // Division_impossible
 		{T_MOD, "Inf", "2", "NaN", InvalidOperation},            // Invalid_operation
 
-		{T_ABS, "sNaN", "", "NaN", InvalidOperation},       // Invalid_operation      because of sNan (signaling NaN)
-		{T_ABS, "sNaN456", "", "NaN456", InvalidOperation}, // Invalid_operation      because of sNan (signaling NaN)
-		{T_ABS, "NaN", "", "NaN", 0},
-		{T_ABS, "NaN456", "", "NaN456", 0},
-		{T_ABS, "Inf", "", "Infinity", 0},
-		{T_ABS, "-Inf", "", "Infinity", 0},
-		{T_ABS, "-13256748.9879878", "", "13256748.9879878", 0},
-		{T_ABS, "13256748.9879878", "", "13256748.9879878", 0},
-		{T_ABS, "-13256748.9879878e456", "", "1.32567489879878E+463", 0},
-		{T_ABS, maxquad, "", maxquad, 0},
-		{T_ABS, minquad, "", maxquad, 0},
-		{T_ABS, smallquad, "", smallquad, 0},
-		{T_ABS, nsmallquad, "", smallquad, 0},
+		{T_MAX, "sNaN", "1", "NaN", InvalidOperation},       // Invalid_operation      because of sNan (signaling NaN)
+		{T_MAX, "sNaN456", "1", "NaN456", InvalidOperation}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_MAX, "NaN", "NaN", "NaN", 0},
+		{T_MAX, "NaN456", "NaN", "NaN456", 0},
+		{T_MAX, "NaN", "NaN456", "NaN", 0},
+		{T_MAX, "NaN789", "NaN456", "NaN789", 0},
+		{T_MAX, "NaN456", "NaN789", "NaN456", 0},
+		{T_MAX, "NaN", "123", "123", 0},
+		{T_MAX, "NaN456", "123", "123", 0},
+		{T_MAX, "NaN", "Inf", "Infinity", 0},
+		{T_MAX, "123", "NaN", "123", 0},
+		{T_MAX, "Inf", "NaN", "Infinity", 0},
+		{T_MAX, "Inf", "Inf", "Infinity", 0},
+		{T_MAX, "-Inf", "-Inf", "-Infinity", 0},
+		{T_MAX, "-Inf", "123", "123", 0},
+		{T_MAX, "Inf", "-Inf", "Infinity", 0},
+		{T_MAX, "Inf", "123", "Infinity", 0},
+		{T_MAX, "123", "Inf", "Infinity", 0},
+		{T_MAX, "12345.6700001", "12345.67", "12345.6700001", 0},
+		{T_MAX, "12345.67000", "12345.67", "12345.67", 0},
+		{T_MAX, "12345.669999", "12345.67", "12345.67", 0},
+		{T_MAX, "-12345.6700001", "-12345.67", "-12345.67", 0},
+		{T_MAX, "-12345.67000", "-12345.67", "-12345.67000", 0},
+		{T_MAX, "-12345.669999", "-12345.67", "-12345.669999", 0},
+
+		{T_MIN, "sNaN", "1", "NaN", InvalidOperation},       // Invalid_operation      because of sNan (signaling NaN)
+		{T_MIN, "sNaN456", "1", "NaN456", InvalidOperation}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_MIN, "NaN", "NaN", "NaN", 0},
+		{T_MIN, "NaN", "123", "123", 0},
+		{T_MIN, "NaN456", "123", "123", 0},
+		{T_MIN, "NaN", "Inf", "Infinity", 0},
+		{T_MIN, "123", "NaN", "123", 0},
+		{T_MIN, "Inf", "NaN", "Infinity", 0},
+		{T_MIN, "Inf", "Inf", "Infinity", 0},
+		{T_MIN, "-Inf", "-Inf", "-Infinity", 0},
+		{T_MIN, "-Inf", "123", "-Infinity", 0},
+		{T_MIN, "Inf", "-Inf", "-Infinity", 0},
+		{T_MIN, "Inf", "123", "123", 0},
+		{T_MIN, "123", "Inf", "123", 0},
+		{T_MIN, "12345.6700001", "12345.67", "12345.67", 0},
+		{T_MIN, "12345.67000", "12345.67", "12345.67000", 0},
+		{T_MIN, "12345.669999", "12345.67", "12345.669999", 0},
+		{T_MIN, "-12345.6700001", "-12345.67", "-12345.6700001", 0},
+		{T_MIN, "-12345.67000", "-12345.67", "-12345.67", 0},
+		{T_MIN, "-12345.669999", "-12345.67", "-12345.67", 0},
 
 		{T_TOINTEGRAL, "sNaN", "RoundHalfEven", "NaN", InvalidOperation},       // Invalid_operation      because of sNan (signaling NaN)
 		{T_TOINTEGRAL, "sNaN456", "RoundHalfEven", "NaN456", InvalidOperation}, // Invalid_operation      because of sNan (signaling NaN)
@@ -503,6 +554,127 @@ func Test_operations(t *testing.T) {
 		{T_QUANTIZE, "123e32", "1", "NaN", InvalidOperation}, // Invalid_operation
 		{T_QUANTIZE, "123e32", "1E1", "1.230000000000000000000000000000000E+34", 0},
 		{T_QUANTIZE, "123e32", "10", "NaN", InvalidOperation}, // Invalid_operation
+
+		{T_ABS, "sNaN", "", "NaN", InvalidOperation},       // Invalid_operation      because of sNan (signaling NaN)
+		{T_ABS, "sNaN456", "", "NaN456", InvalidOperation}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_ABS, "NaN", "", "NaN", 0},
+		{T_ABS, "NaN456", "", "NaN456", 0},
+		{T_ABS, "Inf", "", "Infinity", 0},
+		{T_ABS, "-Inf", "", "Infinity", 0},
+		{T_ABS, "-13256748.9879878", "", "13256748.9879878", 0},
+		{T_ABS, "13256748.9879878", "", "13256748.9879878", 0},
+		{T_ABS, "-13256748.9879878e456", "", "1.32567489879878E+463", 0},
+		{T_ABS, maxquad, "", maxquad, 0},
+		{T_ABS, minquad, "", maxquad, 0},
+		{T_ABS, smallquad, "", smallquad, 0},
+		{T_ABS, nsmallquad, "", smallquad, 0},
+
+		{T_ISFINITE, "sNaN", "", "false", 0},
+		{T_ISFINITE, "sNaN456", "", "false", 0},
+		{T_ISFINITE, "NaN", "", "false", 0},
+		{T_ISFINITE, "NaN456", "", "false", 0},
+		{T_ISFINITE, "Inf", "", "false", 0},
+		{T_ISFINITE, "-Inf", "", "false", 0},
+		{T_ISFINITE, "0.0000", "", "true", 0},
+		{T_ISFINITE, "-0.0000", "", "true", 0},
+		{T_ISFINITE, "1234", "", "true", 0},
+		{T_ISFINITE, "1234.5", "", "true", 0},
+		{T_ISFINITE, "-12.34e5", "", "true", 0},
+		{T_ISFINITE, "12.34e5", "", "true", 0},
+		{T_ISFINITE, maxquad, "", "true", 0},
+
+		/* not used for the moment
+		{T_ISINTEGER, "sNaN", "", "false", 0},
+		{T_ISINTEGER, "sNaN456", "", "false", 0},
+		{T_ISINTEGER, "NaN", "", "false", 0},
+		{T_ISINTEGER, "NaN456", "", "false", 0},
+		{T_ISINTEGER, "Inf", "", "false", 0},
+		{T_ISINTEGER, "-Inf", "", "false", 0},
+		{T_ISINTEGER, "0", "", "true", 0},
+		{T_ISINTEGER, "0.0000", "", "false", 0},
+		{T_ISINTEGER, "12.34e2", "", "true", 0},
+		{T_ISINTEGER, "12.34e3", "", "false", 0},
+		{T_ISINTEGER, "1", "", "true", 0},
+		{T_ISINTEGER, "1.0000", "", "false", 0},
+		{T_ISINTEGER, "-0.0000", "", "false", 0},
+		{T_ISINTEGER, "1234", "", "true", 0},
+		{T_ISINTEGER, "1234.5", "", "false", 0},
+		{T_ISINTEGER, "-12.34e5", "", "false", 0},
+		{T_ISINTEGER, "12.34e5", "", "false", 0},
+		{T_ISINTEGER, maxquad, "", "false", 0},
+		{T_ISINTEGER, "1e3", "", "false", 0},
+		*/
+
+		{T_ISINFINITE, "sNaN", "", "false", 0},
+		{T_ISINFINITE, "sNaN456", "", "false", 0},
+		{T_ISINFINITE, "NaN", "", "false", 0},
+		{T_ISINFINITE, "NaN456", "", "false", 0},
+		{T_ISINFINITE, "Inf", "", "true", 0},
+		{T_ISINFINITE, "-Inf", "", "true", 0},
+		{T_ISINFINITE, "0.0000", "", "false", 0},
+		{T_ISINFINITE, "-0.0000", "", "false", 0},
+		{T_ISINFINITE, "1234", "", "false", 0},
+		{T_ISINFINITE, "1234.5", "", "false", 0},
+		{T_ISINFINITE, "-12.34e5", "", "false", 0},
+		{T_ISINFINITE, "12.34e5", "", "false", 0},
+		{T_ISINFINITE, maxquad, "", "false", 0},
+
+		{T_ISNAN, "sNaN", "", "true", 0},
+		{T_ISNAN, "sNaN456", "", "true", 0},
+		{T_ISNAN, "NaN", "", "true", 0},
+		{T_ISNAN, "NaN456", "", "true", 0},
+		{T_ISNAN, "Inf", "", "false", 0},
+		{T_ISNAN, "-Inf", "", "false", 0},
+		{T_ISNAN, "0.0000", "", "false", 0},
+		{T_ISNAN, "-0.0000", "", "false", 0},
+		{T_ISNAN, "1234", "", "false", 0},
+		{T_ISNAN, "1234.5", "", "false", 0},
+		{T_ISNAN, "-12.34e5", "", "false", 0},
+		{T_ISNAN, "12.34e5", "", "false", 0},
+		{T_ISNAN, maxquad, "", "false", 0},
+
+		{T_ISPOSITIVE, "sNaN", "", "false", 0},
+		{T_ISPOSITIVE, "sNaN456", "", "false", 0},
+		{T_ISPOSITIVE, "NaN", "", "false", 0},
+		{T_ISPOSITIVE, "NaN456", "", "false", 0},
+		{T_ISPOSITIVE, "Inf", "", "true", 0},
+		{T_ISPOSITIVE, "-Inf", "", "false", 0},
+		{T_ISPOSITIVE, "0.0000", "", "false", 0},
+		{T_ISPOSITIVE, "-0.0000", "", "false", 0},
+		{T_ISPOSITIVE, "1234", "", "true", 0},
+		{T_ISPOSITIVE, "1234.5", "", "true", 0},
+		{T_ISPOSITIVE, "-12.34e5", "", "false", 0},
+		{T_ISPOSITIVE, "12.34e5", "", "true", 0},
+		{T_ISPOSITIVE, maxquad, "", "true", 0},
+
+		{T_ISZERO, "sNaN", "", "false", 0},
+		{T_ISZERO, "sNaN456", "", "false", 0},
+		{T_ISZERO, "NaN", "", "false", 0},
+		{T_ISZERO, "NaN456", "", "false", 0},
+		{T_ISZERO, "Inf", "", "false", 0},
+		{T_ISZERO, "-Inf", "", "false", 0},
+		{T_ISZERO, "0.0000", "", "true", 0},
+		{T_ISZERO, "-0.0000", "", "true", 0},
+		{T_ISZERO, "1234", "", "false", 0},
+		{T_ISZERO, "1234.5", "", "false", 0},
+		{T_ISZERO, "-12.34e5", "", "false", 0},
+		{T_ISZERO, "12.34e5", "", "false", 0},
+		{T_ISZERO, maxquad, "", "false", 0},
+
+		{T_ISNEGATIVE, "sNaN", "", "false", 0},
+		{T_ISNEGATIVE, "sNaN456", "", "false", 0},
+		{T_ISNEGATIVE, "NaN", "", "false", 0},
+		{T_ISNEGATIVE, "NaN456", "", "false", 0},
+		{T_ISNEGATIVE, "-NaN", "", "false", 0},
+		{T_ISNEGATIVE, "Inf", "", "false", 0},
+		{T_ISNEGATIVE, "-Inf", "", "true", 0},
+		{T_ISNEGATIVE, "0.0000", "", "false", 0},
+		{T_ISNEGATIVE, "-0.0000", "", "false", 0},
+		{T_ISNEGATIVE, "1234", "", "false", 0},
+		{T_ISNEGATIVE, "1234.5", "", "false", 0},
+		{T_ISNEGATIVE, "-12.34e5", "", "true", 0},
+		{T_ISNEGATIVE, "12.34e5", "", "false", 0},
+		{T_ISNEGATIVE, maxquad, "", "false", 0},
 
 		{T_GREATER, "sNaN", "1", "false", 0},    // Invalid_operation      because of sNan (signaling NaN)
 		{T_GREATER, "sNaN456", "1", "false", 0}, // Invalid_operation      because of sNan (signaling NaN)
@@ -609,157 +781,6 @@ func Test_operations(t *testing.T) {
 		{T_LESS, "-12345.67000", "-12345.67", "false", 0},
 		{T_LESS, "-12345.669999", "-12345.67", "false", 0},
 
-		{T_ISFINITE, "sNaN", "", "false", 0},
-		{T_ISFINITE, "sNaN456", "", "false", 0},
-		{T_ISFINITE, "NaN", "", "false", 0},
-		{T_ISFINITE, "NaN456", "", "false", 0},
-		{T_ISFINITE, "Inf", "", "false", 0},
-		{T_ISFINITE, "-Inf", "", "false", 0},
-		{T_ISFINITE, "0.0000", "", "true", 0},
-		{T_ISFINITE, "-0.0000", "", "true", 0},
-		{T_ISFINITE, "1234", "", "true", 0},
-		{T_ISFINITE, "1234.5", "", "true", 0},
-		{T_ISFINITE, "-12.34e5", "", "true", 0},
-		{T_ISFINITE, "12.34e5", "", "true", 0},
-		{T_ISFINITE, maxquad, "", "true", 0},
-
-		{T_ISINTEGER, "sNaN", "", "false", 0},
-		{T_ISINTEGER, "sNaN456", "", "false", 0},
-		{T_ISINTEGER, "NaN", "", "false", 0},
-		{T_ISINTEGER, "NaN456", "", "false", 0},
-		{T_ISINTEGER, "Inf", "", "false", 0},
-		{T_ISINTEGER, "-Inf", "", "false", 0},
-		{T_ISINTEGER, "0", "", "true", 0},
-		{T_ISINTEGER, "0.0000", "", "false", 0},
-		{T_ISINTEGER, "12.34e2", "", "true", 0},
-		{T_ISINTEGER, "12.34e3", "", "false", 0},
-		{T_ISINTEGER, "1", "", "true", 0},
-		{T_ISINTEGER, "1.0000", "", "false", 0},
-		{T_ISINTEGER, "-0.0000", "", "false", 0},
-		{T_ISINTEGER, "1234", "", "true", 0},
-		{T_ISINTEGER, "1234.5", "", "false", 0},
-		{T_ISINTEGER, "-12.34e5", "", "false", 0},
-		{T_ISINTEGER, "12.34e5", "", "false", 0},
-		{T_ISINTEGER, maxquad, "", "false", 0},
-		{T_ISINTEGER, "1e3", "", "false", 0},
-
-		{T_ISINFINITE, "sNaN", "", "false", 0},
-		{T_ISINFINITE, "sNaN456", "", "false", 0},
-		{T_ISINFINITE, "NaN", "", "false", 0},
-		{T_ISINFINITE, "NaN456", "", "false", 0},
-		{T_ISINFINITE, "Inf", "", "true", 0},
-		{T_ISINFINITE, "-Inf", "", "true", 0},
-		{T_ISINFINITE, "0.0000", "", "false", 0},
-		{T_ISINFINITE, "-0.0000", "", "false", 0},
-		{T_ISINFINITE, "1234", "", "false", 0},
-		{T_ISINFINITE, "1234.5", "", "false", 0},
-		{T_ISINFINITE, "-12.34e5", "", "false", 0},
-		{T_ISINFINITE, "12.34e5", "", "false", 0},
-		{T_ISINFINITE, maxquad, "", "false", 0},
-
-		{T_ISNAN, "sNaN", "", "true", 0},
-		{T_ISNAN, "sNaN456", "", "true", 0},
-		{T_ISNAN, "NaN", "", "true", 0},
-		{T_ISNAN, "NaN456", "", "true", 0},
-		{T_ISNAN, "Inf", "", "false", 0},
-		{T_ISNAN, "-Inf", "", "false", 0},
-		{T_ISNAN, "0.0000", "", "false", 0},
-		{T_ISNAN, "-0.0000", "", "false", 0},
-		{T_ISNAN, "1234", "", "false", 0},
-		{T_ISNAN, "1234.5", "", "false", 0},
-		{T_ISNAN, "-12.34e5", "", "false", 0},
-		{T_ISNAN, "12.34e5", "", "false", 0},
-		{T_ISNAN, maxquad, "", "false", 0},
-
-		{T_ISPOSITIVE, "sNaN", "", "false", 0},
-		{T_ISPOSITIVE, "sNaN456", "", "false", 0},
-		{T_ISPOSITIVE, "NaN", "", "false", 0},
-		{T_ISPOSITIVE, "NaN456", "", "false", 0},
-		{T_ISPOSITIVE, "Inf", "", "true", 0},
-		{T_ISPOSITIVE, "-Inf", "", "false", 0},
-		{T_ISPOSITIVE, "0.0000", "", "false", 0},
-		{T_ISPOSITIVE, "-0.0000", "", "false", 0},
-		{T_ISPOSITIVE, "1234", "", "true", 0},
-		{T_ISPOSITIVE, "1234.5", "", "true", 0},
-		{T_ISPOSITIVE, "-12.34e5", "", "false", 0},
-		{T_ISPOSITIVE, "12.34e5", "", "true", 0},
-		{T_ISPOSITIVE, maxquad, "", "true", 0},
-
-		{T_ISZERO, "sNaN", "", "false", 0},
-		{T_ISZERO, "sNaN456", "", "false", 0},
-		{T_ISZERO, "NaN", "", "false", 0},
-		{T_ISZERO, "NaN456", "", "false", 0},
-		{T_ISZERO, "Inf", "", "false", 0},
-		{T_ISZERO, "-Inf", "", "false", 0},
-		{T_ISZERO, "0.0000", "", "true", 0},
-		{T_ISZERO, "-0.0000", "", "true", 0},
-		{T_ISZERO, "1234", "", "false", 0},
-		{T_ISZERO, "1234.5", "", "false", 0},
-		{T_ISZERO, "-12.34e5", "", "false", 0},
-		{T_ISZERO, "12.34e5", "", "false", 0},
-		{T_ISZERO, maxquad, "", "false", 0},
-
-		{T_ISNEGATIVE, "sNaN", "", "false", 0},
-		{T_ISNEGATIVE, "sNaN456", "", "false", 0},
-		{T_ISNEGATIVE, "NaN", "", "false", 0},
-		{T_ISNEGATIVE, "NaN456", "", "false", 0},
-		{T_ISNEGATIVE, "-NaN", "", "false", 0},
-		{T_ISNEGATIVE, "Inf", "", "false", 0},
-		{T_ISNEGATIVE, "-Inf", "", "true", 0},
-		{T_ISNEGATIVE, "0.0000", "", "false", 0},
-		{T_ISNEGATIVE, "-0.0000", "", "false", 0},
-		{T_ISNEGATIVE, "1234", "", "false", 0},
-		{T_ISNEGATIVE, "1234.5", "", "false", 0},
-		{T_ISNEGATIVE, "-12.34e5", "", "true", 0},
-		{T_ISNEGATIVE, "12.34e5", "", "false", 0},
-		{T_ISNEGATIVE, maxquad, "", "false", 0},
-
-		{T_MAX, "sNaN", "1", "NaN", InvalidOperation},       // Invalid_operation      because of sNan (signaling NaN)
-		{T_MAX, "sNaN456", "1", "NaN456", InvalidOperation}, // Invalid_operation      because of sNan (signaling NaN)
-		{T_MAX, "NaN", "NaN", "NaN", 0},
-		{T_MAX, "NaN456", "NaN", "NaN456", 0},
-		{T_MAX, "NaN", "NaN456", "NaN", 0},
-		{T_MAX, "NaN789", "NaN456", "NaN789", 0},
-		{T_MAX, "NaN456", "NaN789", "NaN456", 0},
-		{T_MAX, "NaN", "123", "123", 0},
-		{T_MAX, "NaN456", "123", "123", 0},
-		{T_MAX, "NaN", "Inf", "Infinity", 0},
-		{T_MAX, "123", "NaN", "123", 0},
-		{T_MAX, "Inf", "NaN", "Infinity", 0},
-		{T_MAX, "Inf", "Inf", "Infinity", 0},
-		{T_MAX, "-Inf", "-Inf", "-Infinity", 0},
-		{T_MAX, "-Inf", "123", "123", 0},
-		{T_MAX, "Inf", "-Inf", "Infinity", 0},
-		{T_MAX, "Inf", "123", "Infinity", 0},
-		{T_MAX, "123", "Inf", "Infinity", 0},
-		{T_MAX, "12345.6700001", "12345.67", "12345.6700001", 0},
-		{T_MAX, "12345.67000", "12345.67", "12345.67", 0},
-		{T_MAX, "12345.669999", "12345.67", "12345.67", 0},
-		{T_MAX, "-12345.6700001", "-12345.67", "-12345.67", 0},
-		{T_MAX, "-12345.67000", "-12345.67", "-12345.67000", 0},
-		{T_MAX, "-12345.669999", "-12345.67", "-12345.669999", 0},
-
-		{T_MIN, "sNaN", "1", "NaN", InvalidOperation},       // Invalid_operation      because of sNan (signaling NaN)
-		{T_MIN, "sNaN456", "1", "NaN456", InvalidOperation}, // Invalid_operation      because of sNan (signaling NaN)
-		{T_MIN, "NaN", "NaN", "NaN", 0},
-		{T_MIN, "NaN", "123", "123", 0},
-		{T_MIN, "NaN456", "123", "123", 0},
-		{T_MIN, "NaN", "Inf", "Infinity", 0},
-		{T_MIN, "123", "NaN", "123", 0},
-		{T_MIN, "Inf", "NaN", "Infinity", 0},
-		{T_MIN, "Inf", "Inf", "Infinity", 0},
-		{T_MIN, "-Inf", "-Inf", "-Infinity", 0},
-		{T_MIN, "-Inf", "123", "-Infinity", 0},
-		{T_MIN, "Inf", "-Inf", "-Infinity", 0},
-		{T_MIN, "Inf", "123", "123", 0},
-		{T_MIN, "123", "Inf", "123", 0},
-		{T_MIN, "12345.6700001", "12345.67", "12345.67", 0},
-		{T_MIN, "12345.67000", "12345.67", "12345.67000", 0},
-		{T_MIN, "12345.669999", "12345.67", "12345.669999", 0},
-		{T_MIN, "-12345.6700001", "-12345.67", "-12345.6700001", 0},
-		{T_MIN, "-12345.67000", "-12345.67", "-12345.67", 0},
-		{T_MIN, "-12345.669999", "-12345.67", "-12345.67", 0},
-
 		{T_FROMSTRING, "sNaN", "", "sNaN", 0},         // sNaN is returned without setting status error flag
 		{T_FROMSTRING, "sNaN456", "", "sNaN456", 0},   // sNaN is returned without setting status error flag
 		{T_FROMSTRING, "-sNaN456", "", "-sNaN456", 0}, // sNaN is returned without setting status error flag
@@ -831,6 +852,8 @@ func Test_operations(t *testing.T) {
 		{T_TOINT32, "-2147483648.49999999999", "RoundHalfDown", "-2147483648", 0},
 		{T_TOINT32, "-2147483648.5", "RoundHalfUp", "0", InvalidOperation}, // Invalid_operation
 		{T_TOINT32, "-2147483648.5", "RoundHalfDown", "-2147483648", 0},
+		{T_TOINT32, "-2147483648.5e-4", "RoundHalfDown", "-214748", 0},
+		{T_TOINT32, "-2147483648.5e-400", "RoundHalfDown", "0", 0},
 
 		{T_TOINT64, "sNan", "RoundHalfUp", "0", InvalidOperation}, // Invalid_operation
 		{T_TOINT64, "Nan", "RoundHalfUp", "0", InvalidOperation},  // Invalid_operation
@@ -848,6 +871,8 @@ func Test_operations(t *testing.T) {
 		{T_TOINT64, "-9223372036854775808.49999999999", "RoundHalfDown", "-9223372036854775808", 0},
 		{T_TOINT64, "-9223372036854775808.5", "RoundHalfUp", "0", InvalidOperation}, // Invalid_operation
 		{T_TOINT64, "-9223372036854775808.5", "RoundHalfDown", "-9223372036854775808", 0},
+		{T_TOINT64, "-2147483648.5e-4", "RoundHalfDown", "-214748", 0},
+		{T_TOINT64, "-2147483648.5e-400", "RoundHalfDown", "0", 0},
 
 		{T_TOFLOAT64, "sNan", "", "NaN", 0},
 		{T_TOFLOAT64, "Nan", "", "NaN", 0},
@@ -867,7 +892,7 @@ func Test_operations(t *testing.T) {
 		{T_QUADTOSTRING, "-Nan123", "", "-NaN123", 0},
 		{T_QUADTOSTRING, "Inf", "", "Infinity", 0},
 		{T_QUADTOSTRING, "-Inf", "", "-Infinity", 0},
-		{T_QUADTOSTRING, "0", "", "0", 0},
+		{T_QUADTOSTRING, "-0", "", "0", 0},
 		{T_QUADTOSTRING, "28799.234235", "", "28799.234235", 0},
 		{T_QUADTOSTRING, "28799.234235e1000", "", "2.8799234235E+1004", 0},
 		{T_QUADTOSTRING, "0", "", "0", 0},
@@ -902,7 +927,7 @@ func Test_operations(t *testing.T) {
 		{T_STRING, "-Nan123", "", "-NaN123", 0},
 		{T_STRING, "Inf", "", "Infinity", 0},
 		{T_STRING, "-Inf", "", "-Infinity", 0},
-		{T_STRING, "0", "", "0", 0},
+		{T_STRING, "-0", "", "0", 0},
 		{T_STRING, "28799.234235", "", "28799.234235", 0},
 		{T_STRING, "28799.234235e1000", "", "2.8799234235E+1004", 0},
 		{T_STRING, "0", "", "0", 0},
@@ -926,6 +951,111 @@ func Test_operations(t *testing.T) {
 		{T_STRING, "12.3e5", "", "1.23E+6", 0},
 		{T_STRING, "123836700e-5", "", "1238.36700", 0},
 		{T_STRING, "0.0000000000", "", "0.0000000000", 0},
+
+		{T_ROUND, "sNaN", "0", "NaN", InvalidOperation},       // Invalid_operation      because of sNan (signaling NaN)
+		{T_ROUND, "sNaN456", "0", "NaN456", InvalidOperation}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_ROUND, "NaN", "0", "NaN", 0},
+		{T_ROUND, "NaN456", "0", "NaN456", 0},
+		{T_ROUND, "Inf", "0", "NaN", InvalidOperation},  // Invalid_operation
+		{T_ROUND, "-Inf", "0", "NaN", InvalidOperation}, // Invalid_operation
+		{T_ROUND, "-13256748.9879878", "0", "-13256749", 0},
+		{T_ROUND, "13256748.9879878", "0", "13256749", 0},
+		{T_ROUND, "9999999999999999999999999999999999", "0", "9999999999999999999999999999999999", 0},
+		{T_ROUND, "8999999999999999999999999999999999", "-1", "9000000000000000000000000000000000", 0},
+		{T_ROUND, "8999999999999999999999999999999999", "-33", "9000000000000000000000000000000000", 0},
+		{T_ROUND, "8999999999999999999999999999999999", "-34", "NaN", InvalidOperation}, // Invalid_operation
+		{T_ROUND, "9999999999999999999999999999999999", "1", "NaN", InvalidOperation},   // Invalid_operation
+		{T_ROUND, "999999999999999999999999999999999", "1", "999999999999999999999999999999999.0", 0},
+		{T_ROUND, "0.9999999999999999999999999999999999", "34", "0.9999999999999999999999999999999999", 0},
+		{T_ROUND, "-13256748.9879878", "34", "NaN", InvalidOperation}, // Invalid_operation
+		{T_ROUND, "-13256748.9879878", "26", "-13256748.98798780000000000000000000", 0},
+		{T_ROUND, "-13256748.9879878", "27", "NaN", InvalidOperation}, // Invalid_operation
+		{T_ROUND, "-13256748.9879878", "-8", "0", 0},
+		{T_ROUND, "-13256748.9879878", "-7", "-10000000", 0},
+		{T_ROUND, "-13256748.9879878", "-2", "-13256700", 0},
+		{T_ROUND, "-1325674898.79878e-2", "-2", "-13256700", 0},
+		{T_ROUND, "123e5", "2", "12300000.00", 0},
+		{T_ROUND, "123e5", "-2", "12300000", 0},
+		{T_ROUND, "-13256748.9879878", "-1", "-13256750", 0},
+		{T_ROUND, "-13256748.9879878", "0", "-13256749", 0},
+		{T_ROUND, "-13256748.9879878", "1", "-13256749.0", 0},
+		{T_ROUND, "-13256748.9879878", "2", "-13256748.99", 0},
+		{T_ROUND, "-13256748.9879878", "3", "-13256748.988", 0},
+		{T_ROUND, "-13256748.495", "-8", "0", 0},
+		{T_ROUND, "-13256748.495", "-7", "-10000000", 0},
+		{T_ROUND, "-13256748.495", "-2", "-13256700", 0},
+		{T_ROUND, "-13256748.495", "-1", "-13256750", 0},
+		{T_ROUND, "-13256748.495", "0", "-13256748", 0},
+		{T_ROUND, "-13256748.495", "1", "-13256748.5", 0},
+		{T_ROUND, "-13256748.495", "2", "-13256748.50", 0},
+		{T_ROUND, "-13256748.495", "3", "-13256748.495", 0},
+		{T_ROUND, "-13256748.495", "4", "-13256748.4950", 0},
+		{T_ROUND, "-13256748.9879878e456", "0", "NaN", InvalidOperation}, // Invalid_operation
+		{T_ROUND, maxquad, "0", "NaN", InvalidOperation},                 // Invalid_operation
+		{T_ROUND, minquad, "0", "NaN", InvalidOperation},                 // Invalid_operation
+		{T_ROUND, smallquad, "0", "0", 0},
+		{T_ROUND, nsmallquad, "0", "0", 0},
+		{T_ROUND, "0.2", "34", "0.2000000000000000000000000000000000", 0},
+		{T_ROUND, "0.2", "35", "NaN", InvalidOperation}, // Invalid_operation
+		{T_ROUND, "1111111111111111111111111111111111", "-34", "0", 0},
+		{T_ROUND, "1111111111111111111111111111111111", "-35", "0", 0},
+		{T_ROUND, "1111111111111111111111111111111111", "-36", "NaN", InvalidOperation}, // Invalid_operation
+		{T_ROUND, "9999999999999999999999999999999999", "-34", "NaN", InvalidOperation}, // Invalid_operation
+		{T_ROUND, "9999999999999999999999999999999999", "-35", "0", 0},
+		{T_ROUND, "9999999999999999999999999999999999", "-36", "NaN", InvalidOperation}, // Invalid_operation
+
+		{T_TRUNCATE, "sNaN", "0", "NaN", InvalidOperation},       // Invalid_operation      because of sNan (signaling NaN)
+		{T_TRUNCATE, "sNaN456", "0", "NaN456", InvalidOperation}, // Invalid_operation      because of sNan (signaling NaN)
+		{T_TRUNCATE, "NaN", "0", "NaN", 0},
+		{T_TRUNCATE, "NaN456", "0", "NaN456", 0},
+		{T_TRUNCATE, "Inf", "0", "NaN", InvalidOperation},  // Invalid_operation
+		{T_TRUNCATE, "-Inf", "0", "NaN", InvalidOperation}, // Invalid_operation
+		{T_TRUNCATE, "-13256748.9879878", "0", "-13256748", 0},
+		{T_TRUNCATE, "13256748.9879878", "0", "13256748", 0},
+		{T_TRUNCATE, "9999999999999999999999999999999999", "0", "9999999999999999999999999999999999", 0},
+		{T_TRUNCATE, "8999999999999999999999999999999999", "-1", "8999999999999999999999999999999990", 0},
+		{T_TRUNCATE, "8999999999999999999999999999999999", "-33", "8000000000000000000000000000000000", 0},
+		{T_TRUNCATE, "8999999999999999999999999999999999", "-34", "0", 0},
+		{T_TRUNCATE, "9999999999999999999999999999999999", "1", "NaN", InvalidOperation}, // Invalid_operation
+		{T_TRUNCATE, "999999999999999999999999999999999", "1", "999999999999999999999999999999999.0", 0},
+		{T_TRUNCATE, "0.9999999999999999999999999999999999", "34", "0.9999999999999999999999999999999999", 0},
+		{T_TRUNCATE, "0.9999999999999999999999999999999999", "33", "0.999999999999999999999999999999999", 0},
+		{T_TRUNCATE, "-13256748.9879878", "34", "NaN", InvalidOperation}, // Invalid_operation
+		{T_TRUNCATE, "-13256748.9879878", "26", "-13256748.98798780000000000000000000", 0},
+		{T_TRUNCATE, "-13256748.9879878", "27", "NaN", InvalidOperation}, // Invalid_operation
+		{T_TRUNCATE, "-13256748.9879878", "-8", "0", 0},
+		{T_TRUNCATE, "-13256748.9879878", "-7", "-10000000", 0},
+		{T_TRUNCATE, "-13256748.9879878", "-2", "-13256700", 0},
+		{T_TRUNCATE, "-1325674898.79878e-2", "-2", "-13256700", 0},
+		{T_TRUNCATE, "123e5", "2", "12300000.00", 0},
+		{T_TRUNCATE, "123e5", "-2", "12300000", 0},
+		{T_TRUNCATE, "-13256748.9879878", "-1", "-13256740", 0},
+		{T_TRUNCATE, "-13256748.9879878", "0", "-13256748", 0},
+		{T_TRUNCATE, "-13256748.9879878", "1", "-13256748.9", 0},
+		{T_TRUNCATE, "-13256748.9879878", "2", "-13256748.98", 0},
+		{T_TRUNCATE, "-13256748.9879878", "3", "-13256748.987", 0},
+		{T_TRUNCATE, "-13256748.495", "-8", "0", 0},
+		{T_TRUNCATE, "-13256748.495", "-7", "-10000000", 0},
+		{T_TRUNCATE, "-13256748.495", "-2", "-13256700", 0},
+		{T_TRUNCATE, "-13256748.495", "-1", "-13256740", 0},
+		{T_TRUNCATE, "-13256748.495", "0", "-13256748", 0},
+		{T_TRUNCATE, "-13256748.495", "1", "-13256748.4", 0},
+		{T_TRUNCATE, "-13256748.495", "2", "-13256748.49", 0},
+		{T_TRUNCATE, "-13256748.495", "3", "-13256748.495", 0},
+		{T_TRUNCATE, "-13256748.495", "4", "-13256748.4950", 0},
+		{T_TRUNCATE, "-13256748.9879878e456", "0", "NaN", InvalidOperation}, // Invalid_operation
+		{T_TRUNCATE, maxquad, "0", "NaN", InvalidOperation},                 // Invalid_operation
+		{T_TRUNCATE, minquad, "0", "NaN", InvalidOperation},                 // Invalid_operation
+		{T_TRUNCATE, smallquad, "0", "0", 0},
+		{T_TRUNCATE, nsmallquad, "0", "0", 0},
+		{T_TRUNCATE, "0.2", "34", "0.2000000000000000000000000000000000", 0},
+		{T_TRUNCATE, "0.2", "35", "NaN", InvalidOperation}, // Invalid_operation
+		{T_TRUNCATE, "1111111111111111111111111111111111", "-34", "0", 0},
+		{T_TRUNCATE, "1111111111111111111111111111111111", "-35", "0", 0},
+		{T_TRUNCATE, "9999999999999999999999999999999999", "-34", "0", 0},
+		{T_TRUNCATE, "9999999999999999999999999999999999", "-35", "0", 0},
+		{T_TRUNCATE, "9999999999999999999999999999999999", "-36", "NaN", InvalidOperation}, // Invalid_operation
+
 	}
 
 	for i, sp := range samples {
@@ -987,9 +1117,17 @@ func Test_operations(t *testing.T) {
 			status = result.ErrorStatus()
 			output = result.String()
 
-		case T_ABS:
+		case T_MAX:
 			a = must_quad(sp.a)
-			result = a.Abs()
+			b = must_quad(sp.b)
+			result = Max(a, b)
+			status = result.ErrorStatus()
+			output = result.String()
+
+		case T_MIN:
+			a = must_quad(sp.a)
+			b = must_quad(sp.b)
+			result = Min(a, b)
 			status = result.ErrorStatus()
 			output = result.String()
 
@@ -1002,9 +1140,52 @@ func Test_operations(t *testing.T) {
 		case T_QUANTIZE:
 			a = must_quad(sp.a)
 			b = must_quad(sp.b)
-			result = a.Quantize(b)
+			result = a.Quantize(b, RoundHalfEven)
 			status = result.ErrorStatus()
 			output = result.String()
+
+		case T_ABS:
+			a = must_quad(sp.a)
+			result = a.Abs()
+			status = result.ErrorStatus()
+			output = result.String()
+
+		case T_ISFINITE:
+			a = must_quad(sp.a)
+			result_cmp_bool := a.IsFinite()
+			output = bool2string(result_cmp_bool)
+
+		/*
+			case T_ISINTEGER:
+				a = must_quad(sp.a)
+				result_cmp_bool := a.IsInteger()
+				output = bool2string(result_cmp_bool)
+		*/
+
+		case T_ISINFINITE:
+			a = must_quad(sp.a)
+			result_cmp_bool := a.IsInfinite()
+			output = bool2string(result_cmp_bool)
+
+		case T_ISNAN:
+			a = must_quad(sp.a)
+			result_cmp_bool := a.IsNaN()
+			output = bool2string(result_cmp_bool)
+
+		case T_ISPOSITIVE:
+			a = must_quad(sp.a)
+			result_cmp_bool := a.IsPositive()
+			output = bool2string(result_cmp_bool)
+
+		case T_ISZERO:
+			a = must_quad(sp.a)
+			result_cmp_bool := a.IsZero()
+			output = bool2string(result_cmp_bool)
+
+		case T_ISNEGATIVE:
+			a = must_quad(sp.a)
+			result_cmp_bool := a.IsNegative()
+			output = bool2string(result_cmp_bool)
 
 		case T_GREATER:
 			a = must_quad(sp.a)
@@ -1036,60 +1217,11 @@ func Test_operations(t *testing.T) {
 			result_cmp_bool := a.Less(b)
 			output = bool2string(result_cmp_bool)
 
-		case T_ISFINITE:
-			a = must_quad(sp.a)
-			result_cmp_bool := a.IsFinite()
-			output = bool2string(result_cmp_bool)
-
-		case T_ISINTEGER:
-			a = must_quad(sp.a)
-			result_cmp_bool := a.IsInteger()
-			output = bool2string(result_cmp_bool)
-
-		case T_ISINFINITE:
-			a = must_quad(sp.a)
-			result_cmp_bool := a.IsInfinite()
-			output = bool2string(result_cmp_bool)
-
-		case T_ISNAN:
-			a = must_quad(sp.a)
-			result_cmp_bool := a.IsNaN()
-			output = bool2string(result_cmp_bool)
-
-		case T_ISPOSITIVE:
-			a = must_quad(sp.a)
-			result_cmp_bool := a.IsPositive()
-			output = bool2string(result_cmp_bool)
-
-		case T_ISZERO:
-			a = must_quad(sp.a)
-			result_cmp_bool := a.IsZero()
-			output = bool2string(result_cmp_bool)
-
-		case T_ISNEGATIVE:
-			a = must_quad(sp.a)
-			result_cmp_bool := a.IsNegative()
-			output = bool2string(result_cmp_bool)
-
-		case T_MAX:
-			a = must_quad(sp.a)
-			b = must_quad(sp.b)
-			result = Max(a, b)
-			status = result.ErrorStatus()
-			output = result.String()
-
-		case T_MIN:
-			a = must_quad(sp.a)
-			b = must_quad(sp.b)
-			result = Min(a, b)
-			status = result.ErrorStatus()
-			output = result.String()
-
 		case T_FROMSTRING:
 			result, err = FromString(sp.a)
 			output = result.String()
 			if err != nil {
-				status = err.(Status)
+				status = Status(err.(QuadError))
 			}
 
 		case T_FROMINT32:
@@ -1112,7 +1244,7 @@ func Test_operations(t *testing.T) {
 			a = must_quad(sp.a)
 			result_int32, err := a.ToInt32(must_rounding(sp.b))
 			if err != nil {
-				status = err.(Status)
+				status = Status(err.(QuadError))
 			}
 			output = strconv.Itoa(int(result_int32))
 
@@ -1120,7 +1252,7 @@ func Test_operations(t *testing.T) {
 			a = must_quad(sp.a)
 			result_int64, err := a.ToInt64(must_rounding(sp.b))
 			if err != nil {
-				status = err.(Status)
+				status = Status(err.(QuadError))
 			}
 			output = strconv.Itoa(int(result_int64))
 
@@ -1128,35 +1260,36 @@ func Test_operations(t *testing.T) {
 			a = must_quad(sp.a)
 			result_float64, err := a.ToFloat64()
 			if err != nil {
-				status = err.(Status)
+				status = Status(err.(QuadError))
 			}
 			output = strconv.FormatFloat(result_float64, 'f', 6, 64)
+
+		case T_ROUND:
+			a = must_quad(sp.a)
+			n := must_int32(sp.b)
+			result = a.Round(n)
+			status = result.ErrorStatus()
+			output = result.String()
+
+		case T_TRUNCATE:
+			a = must_quad(sp.a)
+			n := must_int32(sp.b)
+			result = a.Truncate(n)
+			status = result.ErrorStatus()
+			output = result.String()
 
 		default:
 			panic("operation unknown")
 		}
 
-		switch {
-		case sp.expected_error_status != 0: // status with error flags expected
-			switch {
-			case status == 0: // but got none
-				t.Fatalf("sample %d, %s <%s, %s>, error expected. Got %s", i, sp.operation, sp.a, sp.b, output)
+		// check status and output
 
-			case status != sp.expected_error_status:
-				t.Fatalf("sample %d, %s <%s, %s>, incorrect error. Got %s, expected %s", i, sp.operation, sp.a, sp.b, status, sp.expected_error_status)
+		if status != sp.expected_error_status {
+			t.Fatalf("sample %d, %s <%s, %s>:  \"%s\" (status) != \"%s\" (expected status)", i, sp.operation, sp.a, sp.b, status, sp.expected_error_status)
+		}
 
-			case output != sp.expected_result: // error as expected, but bad result
-				t.Fatalf("sample %d, %s <%s, %s>, incorrect result. Got %s, expected %s", i, sp.operation, sp.a, sp.b, output, sp.expected_result)
-			}
-
-		default: // no error expected
-			switch {
-			case status != 0: // but got error
-				t.Fatalf("sample %d, %s <%s, %s>, error not expected. Got error: %s", i, sp.operation, sp.a, sp.b, status)
-
-			case output != sp.expected_result: // no error, but bad result
-				t.Fatalf("sample %d, %s <%s, %s>, incorrect result. Got %s, expected %s", i, sp.operation, sp.a, sp.b, output, sp.expected_result)
-			}
+		if output != sp.expected_result {
+			t.Fatalf("sample %d, %s <%s, %s>:  \"%s\" (output) != \"%s\" (expected result)", i, sp.operation, sp.a, sp.b, output, sp.expected_result)
 		}
 	}
 }

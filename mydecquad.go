@@ -31,10 +31,10 @@ func assert(val bool) {
 //
 // Exceptional conditions can be errors, like 'DivisionByZero', or just informational flags, like 'Inexact'.
 //
-type Quad C.Quad // array of 16 bytes, + 4 bytes for status field
+type Quad C.Quad // array of 16 bytes, + 2 bytes for status field
 
 // Status returns the status field of the Quad.
-// It contains error flags, but also informational flags, like 'Inexact'.
+// It contains error flags, like 'DivisionByZero', and informational flags, like 'Inexact'.
 //
 func (a Quad) Status() Status {
 
@@ -51,6 +51,9 @@ func (a Quad) ErrorStatus() Status {
 }
 
 // Error returns an error if an error flag bit has been set in Quad's status field.
+// Many error flag bits can be set in error.
+//
+// It returns QuadError(a.ErrorStatus()), or nil if no error.
 //
 func (a Quad) Error() error {
 	var errorFlags Status
@@ -92,9 +95,9 @@ const (
 // During a long calculation series, status bits are set and propagate into the result number.
 // This way, you can check the status of a number after a series of calculation, using Error() method.
 //
-type Status uint32
+type Status uint16
 
-// These exceptional condition constants are power of two.
+// These exceptional condition constants are bit flags, power of two.
 // They are error flags, or informational flags.
 // The only informational flag used by this package is 'Inexact'.
 //
@@ -181,6 +184,8 @@ func (status Status) String() string {
 	return s
 }
 
+// error type for this package.
+//
 type QuadError Status
 
 // Error returns a string describing the error flags.
@@ -290,7 +295,7 @@ func nan_for_varinit() (r Quad) {
 
 	val = C.mdq_nan()
 
-	return Quad{val: val} // TODO réfléchir
+	return Quad{val: val, status: 0}
 }
 
 // used only to initialize the global variable g_zero.
@@ -302,7 +307,7 @@ func zero_for_varinit() (r Quad) {
 
 	val = C.mdq_zero()
 
-	return Quad{val: val}
+	return Quad{val: val, status: 0}
 }
 
 // used only to initialize some global variables, like g_one.
@@ -484,7 +489,7 @@ func Min(a Quad, b Quad) Quad {
 //         E.g.     12.345678e2    is     12345678E-4     -->   1235E0
 //                  123e5          is     123E5        remains   123E5
 //
-// See also Round, RoundMode and Truncate methods, which are easier to use.
+// See also Round, RoundMode and Truncate methods, which are more convenient to use.
 //
 func (a Quad) ToIntegral(rounding RoundingMode) Quad {
 
@@ -494,16 +499,13 @@ func (a Quad) ToIntegral(rounding RoundingMode) Quad {
 // Quantize rounds a to the same pattern as b.
 // b is just a model, its sign and coefficient value are ignored. Only its exponent is used.
 // The result is the value of a, but with the same exponent as the pattern b.
-// The rounding of the context is used.
-//
-// You can use this function with the proper rounding to round (e.g. set context rounding mode to ROUND_HALF_EVEN) or truncate (ROUND_DOWN) 'a'.
 //
 //      The representation of a number is:
 //
 //           (-1)^sign  coefficient * 10^exponent
 //           where coefficient is an integer storing 34 digits.
 //
-// Examples:
+// Examples (with RoundHalfEven rounding mode):
 //    quantization of 134.6454 with    0.00001    is   134.64540
 //                    134.6454 with    0.00000    is   134.64540     the value of b has no importance
 //                    134.6454 with 1234.56789    is   134.64540     the value of b has no importance
@@ -517,11 +519,11 @@ func (a Quad) ToIntegral(rounding RoundingMode) Quad {
 //		        123e32 with 1E1           is   1230000000000000000000000000000000E1
 //		        123e32 with 10            sets Invalid_operation error flag in status
 //
-// See also Round, RoundMode and Truncate methods, which are easier to use.
+// See also Round, RoundMode and Truncate methods, which are more useful methods.
 //
-func (a Quad) Quantize(b Quad) Quad {
+func (a Quad) Quantize(b Quad, rounding RoundingMode) Quad {
 
-	return Quad(C.mdq_quantize(C.struct_Quad(a), C.struct_Quad(b)))
+	return Quad(C.mdq_quantize(C.struct_Quad(a), C.struct_Quad(b), C.int(rounding)))
 }
 
 // Abs returns the absolute value of a.
@@ -547,6 +549,10 @@ func (a Quad) IsFinite() bool {
 
 	return false
 }
+
+/* IsInteger is discarded.
+   I keep the code here just in case my opinion changes, but I think method is error-prone for the user.
+   E.g. 1e3 returns false. I am not sure it is what the user intuitively expects.
 
 // IsInteger returns true if a is finite and has exponent=0.
 //
@@ -574,6 +580,7 @@ func (a Quad) IsInteger() bool {
 
 	return false
 }
+*/
 
 // IsInfinite returns true if a is Infinite.
 //
@@ -651,7 +658,7 @@ func (a Quad) GetExponent() int32 {
 /*                                                                      */
 /************************************************************************/
 
-// Greater is same as Cmp(a, b, CmpGreater)
+// Greater is true if a > b.
 //
 func (a Quad) Greater(b Quad) bool {
 	var result C.uint32_t
@@ -665,7 +672,7 @@ func (a Quad) Greater(b Quad) bool {
 	return false
 }
 
-// GreaterEqual is same as Cmp(a, b, CmpGreater|CmpEqual)
+// GreaterEqual is true if a >= b.
 //
 func (a Quad) GreaterEqual(b Quad) bool {
 	var result C.uint32_t
@@ -679,7 +686,7 @@ func (a Quad) GreaterEqual(b Quad) bool {
 	return false
 }
 
-// Equal is same as Cmp(a, b, CmpEqual)
+// Equal is true if a == b.
 //
 func (a Quad) Equal(b Quad) bool {
 	var result C.uint32_t
@@ -693,7 +700,7 @@ func (a Quad) Equal(b Quad) bool {
 	return false
 }
 
-// LessEqual is same as Cmp(a, b, CmpLess|CmpEqual)
+// LessEqual is true if a <= b.
 //
 func (a Quad) LessEqual(b Quad) bool {
 	var result C.uint32_t
@@ -707,7 +714,7 @@ func (a Quad) LessEqual(b Quad) bool {
 	return false
 }
 
-// Less is same as Cmp(a, b, CmpLess)
+// Less is true if a < b.
 //
 func (a Quad) Less(b Quad) bool {
 	var result C.uint32_t
@@ -744,7 +751,9 @@ func (a Quad) Less(b Quad) bool {
 // Note that both NaN and sNaN can take an integer payload, e.g. NaN123, created by FromString("NaN123"), and it is up to you to give it a significance.
 // sNaN and payload are not used often, and most probably, you won't use them.
 //
-func FromString(s string) (Quad, error) {
+// This function returns result.Error() as a convenience.
+//
+func FromString(s string) (result Quad, err error) {
 	var cs *C.char
 
 	s = strings.TrimSpace(s)
@@ -752,7 +761,7 @@ func FromString(s string) (Quad, error) {
 	cs = C.CString(s)
 	defer C.free(unsafe.Pointer(cs))
 
-	result := Quad(C.mdq_from_string(cs))
+	result = Quad(C.mdq_from_string(cs))
 
 	return result, result.Error()
 }
@@ -790,7 +799,7 @@ const poolBuffCapacity = 50 // capacity of []byte buffer generated by the pool o
 //    DecquadPmax        = 34
 //    poolBuffCapacity   = 50         just to be sure, it is largely enough
 //
-// The pool must return []byte with capacity being at least the largest of DecquadString and DecquadPmax. We Prefer a capacity of poolBuffCapacity to be sure.
+// The pool must return []byte with capacity being at least the largest of DecquadString and DecquadPmax. We prefer a capacity of poolBuffCapacity to be sure.
 //
 var pool = sync.Pool{
 	New: func() interface{} {
@@ -808,12 +817,6 @@ var pool = sync.Pool{
 //       It is better to use the method AppendQuad() or String(), which don't use exponential notation for a wider range.
 //       AppendQuad() and String() write a number without exp notation if it can be displayed with at most 34 digits, and an optional fractional point.
 //
-//       Zero values are signed (unlike AppendQuad and String methods):
-//          -0    -->  "-0"
-//          -0.00 -->  "-0.00"
-//
-//       Displaying "-0" is often surprising for the user. That's why AppendQuad and String methods always discard the sign of zero values.
-//
 func (a Quad) QuadToString() string {
 	var (
 		retStr   C.Ret_str
@@ -821,7 +824,7 @@ func (a Quad) QuadToString() string {
 		s        string
 	)
 
-	retStr = C.mdq_to_QuadToString(a.val) // may use exponent notation
+	retStr = C.mdq_QuadToString(a.val) // may use exponent notation
 
 	strSlice = pool.Get().([]byte)[:DecquadString]
 	defer pool.Put(strSlice)
@@ -842,10 +845,6 @@ func (a Quad) QuadToString() string {
 //       Else, falls back on QuadToString(), which will use exponential notation.
 //
 // See also method String(), which calls AppendQuad internally.
-//
-//     Zero values are always positive (unlike QuadToString method):
-//          -0    -->  "0"
-//          -0.00 -->  "0.00"
 //
 func AppendQuad(dst []byte, a Quad) []byte {
 	var (
@@ -880,7 +879,7 @@ func AppendQuad(dst []byte, a Quad) []byte {
 	// if Quad value is not in 34 digits range, or Inf or Nan, we want our function to output the number, or Infinity, or NaN. Falls back on QuadToString.
 
 	if exp > 0 || exp < -DecquadPmax || inf_nan != 0 {
-		retStr = C.mdq_to_QuadToString(a.val) // may use exponent notation
+		retStr = C.mdq_QuadToString(a.val) // may use exponent notation
 
 		strSlice = pool.Get().([]byte)[:DecquadString]
 		defer pool.Put(strSlice)
@@ -944,14 +943,10 @@ func AppendQuad(dst []byte, a Quad) []byte {
 // String is the preferred way to display a decQuad number.
 // It calls AppendQuad internally.
 //
-//     Zero values are always positive (unlike QuadToString method):
-//          -0    -->  "0"
-//          -0.00 -->  "0.00"
-//
 func (a Quad) String() string {
 	var buffer []byte
 
-	buffer = pool.Get().([]byte)[:0] // capacity is enough to receive result of C.mdq_to_QuadToString(), and also big enough to receive [sign] + [DecquadPmax digits] + [fractional dot]
+	buffer = pool.Get().([]byte)[:0] // capacity is enough to receive result of C.mdq_QuadToString(), and also big enough to receive [sign] + [DecquadPmax digits] + [fractional dot]
 	defer pool.Put(buffer)
 
 	ss := AppendQuad(buffer[:0], a)
@@ -1036,8 +1031,6 @@ func (a Quad) Bytes() (res [DecquadBytes]byte) {
 //
 //  n must be in the range [-35...34]. Else, Invalid Operation flag is set, and NaN is returned.
 //
-//  ### this method has not been fully tested yet, but it should work. I must write some test to be sure ###
-//
 func (a Quad) RoundWithMode(n int32, rounding RoundingMode) Quad {
 
 	return Quad(C.mdq_roundM(C.struct_Quad(a), C.int32_t(n), C.int(rounding)))
@@ -1046,8 +1039,6 @@ func (a Quad) RoundWithMode(n int32, rounding RoundingMode) Quad {
 // Round rounds (or truncate) 'a', with RoundHalfEven mode.
 //
 //  n must be in the range [-35...34]. Else, Invalid Operation flag is set, and NaN is returned.
-//
-//  ### this method has not been fully tested yet, but it should work. I must write some test to be sure ###
 //
 func (a Quad) Round(n int32) Quad {
 
@@ -1058,8 +1049,6 @@ func (a Quad) Round(n int32) Quad {
 // It is like rounding with RoundDown.
 //
 //  n must be in the range [-35...34]. Else, Invalid Operation flag is set, and NaN is returned.
-//
-//  ### this method has not been fully tested yet, but it should work. I must write some test to be sure ###
 //
 func (a Quad) Truncate(n int32) Quad {
 

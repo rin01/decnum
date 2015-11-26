@@ -67,13 +67,13 @@ void mdq_init(void) {
       exit(1);
   }
 
-  assert( DECQUAD_Pmax == 34 );             // we have 34 digits max precision.
-  assert( DECQUAD_String > DECQUAD_Pmax );  // because Go function quad.AppendQuad()
+  assert( DECQUAD_Pmax == 34 );             // we have 34 digits max precision (number of significant digits).
+  assert( DECQUAD_String > DECQUAD_Pmax );  // because Go function quad.AppendQuad() requires it
 
 
   //----- put 1 in static_one -----
 
-  decQuadFromInt32(&static_one, 1); // IMPORTANT: this means that mdq_to_int64 can only be called after Go init() has been run, as it uses static_one. ctx.ToInt32() cannot be called to initialize Go global variables.
+  decQuadFromInt32(&static_one, 1); // IMPORTANT: this means that mdq_to_int64 can only be called after Go init() has been run, as it uses static_one. Method ToInt32() cannot be called to initialize Go global variables.
 
 
   //----- fill decContext -----
@@ -139,6 +139,8 @@ void mdq_init(void) {
 /************************************************************************/
 
 
+/* returns 0E0.
+*/
 decQuad mdq_zero() {
   decQuad  val;
 
@@ -147,7 +149,8 @@ decQuad mdq_zero() {
   return val;
 }
 
-
+/* returns NaN.
+*/
 decQuad mdq_nan() {
   decContext set;
   decQuad    val;
@@ -156,7 +159,7 @@ decQuad mdq_nan() {
 
   decQuadFromString(&val, "Nan", &set);
 
-  //assert(set.status & DEC_Errors == 0); // a status bit is set, because the Nan
+  //assert(set.status & DEC_Errors == 0); // a status bit is set, because of Nan
 
   return val;
 }
@@ -315,7 +318,7 @@ Quad mdq_to_integral(Quad a, int round) {
   decContextDefault(&set, DEC_INIT_DECQUAD);
   set.status = a.status;
 
-  decQuadToIntegralValue(&res.val, &a.val, &set, round);
+  decQuadToIntegralValue(&res.val, &a.val, &set, round); // The DEC_Inexact flag is not set by this function, even if rounding ocurred.
   res.status = decContextGetStatus(&set);
 
   return res;
@@ -324,11 +327,12 @@ Quad mdq_to_integral(Quad a, int round) {
 
 /* quantize.
 */
-Quad mdq_quantize(Quad a, Quad b) {
+Quad mdq_quantize(Quad a, Quad b, int round) {
   decContext  set;
   Quad        res;
 
   decContextDefault(&set, DEC_INIT_DECQUAD);
+  decContextSetRounding(&set, round);      // change rounding mode
   set.status = a.status | b.status;
 
   decQuadQuantize(&res.val, &a.val, &b.val, &set);
@@ -439,7 +443,7 @@ uint32_t mdq_compare(Quad a, Quad b) {
   set.status = a.status | b.status;
 
 
-  decQuadCompare(&cmp_val, &a.val, &b.val, &set); // we don't care about set's status
+  decQuadCompare(&cmp_val, &a.val, &b.val, &set); // result may be –1, 0, 1, or NaN. NaN is returned only if a or b is a NaN.
 
   if ( decQuadIsNaN(&cmp_val) ) {
       return CMP_NAN;
@@ -485,7 +489,7 @@ Quad mdq_from_int32(int32_t value) {
   Quad        res;
 
   decQuadFromInt32(&res.val, value);
-  res.status = 0;
+  res.status = 0; // never fails
 
   return res;
 }
@@ -520,12 +524,20 @@ Quad mdq_from_int64(int64_t value) {
    Never fails.
 
    The function decQuadToString() uses exponential notation too often in my opinion. E.g. 0.0000001 returns "1E-7".
-*/
-Ret_str mdq_to_QuadToString(decQuad a) {
 
+   Unlike the original function decQuadToString, this function discards '-' sign for negative zero: -0.00 is displayed as "0.00".
+*/
+Ret_str mdq_QuadToString(decQuad a) {
+
+  decQuad  a_aux; // copy of a, but with negative sign discarded if a is negative zero
   Ret_str  res = {.length = 0};
 
-  decQuadToString(&a, res.s);
+  if ( decQuadIsZero(&a) ) {
+      decQuadCopyAbs(&a_aux, &a); // discard '-' sign if any
+      decQuadToString(&a_aux, res.s);
+  } else {
+      decQuadToString(&a, res.s);
+  }
 
   res.length = strlen(res.s);
 
@@ -659,7 +671,7 @@ Ret_int64_t mdq_to_int64(Quad a, int round) {
 /************************************************************************/
 
 
-Quad mdq_roundM(Quad a, int32_t n, int rounding) {
+Quad mdq_roundM(Quad a, int32_t n, int round) {
   decContext        set;
   decQuad           r;
   decQuad          *operation_quantizer;
@@ -683,7 +695,7 @@ Quad mdq_roundM(Quad a, int32_t n, int rounding) {
 
   // operation
 
-  decContextSetRounding(&set, rounding);                           // change rounding mode
+  decContextSetRounding(&set, round);                           // change rounding mode
 
   if ( n >= 0 ) {   // round or truncate fractional part
       operation_quantizer = &G_DECQUAD_QUANTIZER[n];                   // n is [0..34]
