@@ -194,6 +194,115 @@ func Test_simple_functions(t *testing.T) {
 	if b.String() != "567890.245" || b.Error() != nil {
 		t.Fatal("b = Copy(a) failed")
 	}
+}
+
+func Test_status_set_clear(t *testing.T) {
+
+	a := One()
+
+	r := a.SetStatusFlags(DivisionByZero | Underflow | InvalidOperation)
+	if r.Status() != DivisionByZero|Underflow|InvalidOperation {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
+
+	r = r.ClearStatusFlags(DivisionByZero | InvalidOperation)
+	if r.Status() != Underflow {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
+
+	r = r.ClearStatus()
+	if r.Status() != 0 {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
+}
+
+func Test_status_propagation(t *testing.T) {
+
+	a := One()
+	a = a.SetStatusFlags(DivisionByZero)
+
+	b := One()
+	b = b.SetStatusFlags(Underflow)
+
+	r := a.Neg()
+	if r.Status() != DivisionByZero {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
+
+	r = a.Add(b)
+	if r.Status() != DivisionByZero|Underflow {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
+
+	r = a.Sub(b)
+	if r.Status() != DivisionByZero|Underflow {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
+
+	r = a.Mul(b)
+	if r.Status() != DivisionByZero|Underflow {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
+
+	r = a.Div(b)
+	if r.Status() != DivisionByZero|Underflow {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
+
+	r = a.DivInt(b)
+	if r.Status() != DivisionByZero|Underflow {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
+
+	r = a.Mod(b)
+	if r.Status() != DivisionByZero|Underflow {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
+
+	r = Max(a, b)
+	if r.Status() != DivisionByZero|Underflow {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
+
+	r = Min(a, b)
+	if r.Status() != DivisionByZero|Underflow {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
+
+	r = a.ToIntegral(RoundHalfEven)
+	if r.Status() != DivisionByZero {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
+
+	r = a.Quantize(b, RoundHalfEven)
+	if r.Status() != DivisionByZero|Underflow {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
+
+	r = a.Abs()
+	if r.Status() != DivisionByZero {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
+
+	r = a.Add(b).Sub(b).Mul(b).Div(b).DivInt(b).Mod(b).ToIntegral(RoundHalfEven).Quantize(b, RoundHalfEven).Abs()
+	if r.Status() != DivisionByZero|Underflow {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
+
+	r = b.Add(a).Sub(b).Mul(b).Div(b).DivInt(b).Mod(b).ToIntegral(RoundHalfEven).Quantize(b, RoundHalfEven).Abs()
+	if r.Status() != DivisionByZero|Underflow {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
+
+	r = a.Round(2)
+	if r.Status() != DivisionByZero {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
+
+	r = a.Truncate(2)
+	if r.Status() != DivisionByZero {
+		t.Fatalf("incorrect status: %s", r.Status())
+	}
 
 }
 
@@ -423,6 +532,7 @@ func Test_operations(t *testing.T) {
 		{T_MOD, "1", "sNaN456", "NaN456", InvalidOperation}, // Invalid_operation      because of sNan (signaling NaN)
 		{T_MOD, "NaN", "NaN", "NaN", 0},
 		{T_MOD, "NaN", "123", "NaN", 0},
+		{T_MOD, "NaN", "1", "NaN", 0},
 		{T_MOD, "NaN456", "123", "NaN456", 0},
 		{T_MOD, "NaN", "Inf", "NaN", 0},
 		{T_MOD, "123", "NaN", "NaN", 0},

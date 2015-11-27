@@ -404,9 +404,33 @@ func Copy(a Quad) Quad {
 
 // ClearStatus returns a copy of a, whith status field cleared.
 //
-func ClearStatus(a Quad) Quad {
+func (a Quad) ClearStatus() Quad {
 
 	a.status = 0
+	return a
+}
+
+// SetStatusFlags returns a copy of a, setting the status flags specified by argument.
+// Status of result is a.status|statusflags.
+//
+// Normally, only library and test modules use this function.
+//
+func (a Quad) SetStatusFlags(statusflags Status) Quad {
+
+	a.status |= C.uint16_t(statusflags)
+
+	return a
+}
+
+// ClearStatusFlags returns a copy of a, clearing the status flags specified by argument.
+// Status of result is a.status&^statusflags.
+//
+// Normally, only library and test modules use this function.
+//
+func (a Quad) ClearStatusFlags(statusflags Status) Quad {
+
+	a.status &^= C.uint16_t(statusflags)
+
 	return a
 }
 
@@ -541,6 +565,9 @@ func (a Quad) Abs() Quad {
 
 // IsFinite returns true if a is not Infinite, nor Nan.
 //
+// The status field of a is not checked.
+// If you need to check the status of a, you can call a.Error().
+//
 func (a Quad) IsFinite() bool {
 
 	if C.mdq_is_finite(a.val) != 0 {
@@ -584,6 +611,9 @@ func (a Quad) IsInteger() bool {
 
 // IsInfinite returns true if a is Infinite.
 //
+// The status field of a is not checked.
+// If you need to check the status of a, you can call a.Error().
+//
 func (a Quad) IsInfinite() bool {
 
 	if C.mdq_is_infinite(a.val) != 0 {
@@ -594,6 +624,9 @@ func (a Quad) IsInfinite() bool {
 }
 
 // IsNaN returns true if a is Nan.
+//
+// The status field of a is not checked.
+// If you need to check the status of a, you can call a.Error().
 //
 func (a Quad) IsNaN() bool {
 
@@ -606,6 +639,9 @@ func (a Quad) IsNaN() bool {
 
 // IsPositive returns true if a > 0 and not Nan.
 //
+// The status field of a is not checked.
+// If you need to check the status of a, you can call a.Error().
+//
 func (a Quad) IsPositive() bool {
 
 	if C.mdq_is_positive(a.val) != 0 {
@@ -617,6 +653,9 @@ func (a Quad) IsPositive() bool {
 
 // IsZero returns true if a == 0.
 //
+// The status field of a is not checked.
+// If you need to check the status of a, you can call a.Error().
+//
 func (a Quad) IsZero() bool {
 
 	if C.mdq_is_zero(a.val) != 0 {
@@ -627,6 +666,9 @@ func (a Quad) IsZero() bool {
 }
 
 // IsNegative returns true if a < 0 and not NaN.
+//
+// The status field of a is not checked.
+// If you need to check the status of a, you can call a.Error().
 //
 func (a Quad) IsNegative() bool {
 
@@ -660,6 +702,9 @@ func (a Quad) GetExponent() int32 {
 
 // Greater is true if a > b.
 //
+// The status fields of a and b are not checked.
+// If you need to check them, you can call a.Error() and b.Error().
+//
 func (a Quad) Greater(b Quad) bool {
 	var result C.uint32_t
 
@@ -673,6 +718,9 @@ func (a Quad) Greater(b Quad) bool {
 }
 
 // GreaterEqual is true if a >= b.
+//
+// The status fields of a and b are not checked.
+// If you need to check them, you can call a.Error() and b.Error().
 //
 func (a Quad) GreaterEqual(b Quad) bool {
 	var result C.uint32_t
@@ -688,6 +736,9 @@ func (a Quad) GreaterEqual(b Quad) bool {
 
 // Equal is true if a == b.
 //
+// The status fields of a and b are not checked.
+// If you need to check them, you can call a.Error() and b.Error().
+//
 func (a Quad) Equal(b Quad) bool {
 	var result C.uint32_t
 
@@ -702,6 +753,9 @@ func (a Quad) Equal(b Quad) bool {
 
 // LessEqual is true if a <= b.
 //
+// The status fields of a and b are not checked.
+// If you need to check them, you can call a.Error() and b.Error().
+//
 func (a Quad) LessEqual(b Quad) bool {
 	var result C.uint32_t
 
@@ -715,6 +769,9 @@ func (a Quad) LessEqual(b Quad) bool {
 }
 
 // Less is true if a < b.
+//
+// The status fields of a and b are not checked.
+// If you need to check them, you can call a.Error() and b.Error().
 //
 func (a Quad) Less(b Quad) bool {
 	var result C.uint32_t
@@ -817,6 +874,9 @@ var pool = sync.Pool{
 //       It is better to use the method AppendQuad() or String(), which don't use exponential notation for a wider range.
 //       AppendQuad() and String() write a number without exp notation if it can be displayed with at most 34 digits, and an optional fractional point.
 //
+// The status field of a is not checked.
+// If you need to check the status of a, you can call a.Error().
+//
 func (a Quad) QuadToString() string {
 	var (
 		retStr   C.Ret_str
@@ -845,6 +905,9 @@ func (a Quad) QuadToString() string {
 //       Else, falls back on QuadToString(), which will use exponential notation.
 //
 // See also method String(), which calls AppendQuad internally.
+//
+// The status field of a is not checked.
+// If you need to check the status of a, you can call a.Error().
 //
 func AppendQuad(dst []byte, a Quad) []byte {
 	var (
@@ -943,6 +1006,9 @@ func AppendQuad(dst []byte, a Quad) []byte {
 // String is the preferred way to display a decQuad number.
 // It calls AppendQuad internally.
 //
+// The status field of a is not checked.
+// If you need to check the status of a, you can call a.Error().
+//
 func (a Quad) String() string {
 	var buffer []byte
 
@@ -962,12 +1028,15 @@ func (a Quad) String() string {
 
 // ToInt32 returns the int32 value from a.
 //
+// The status field of a is not checked.
+// If you need to check the status of a, you can call a.Error().
+//
 func (a Quad) ToInt32(rounding RoundingMode) (int32, error) {
 	var result C.Ret_int32_t
 
 	result = C.mdq_to_int32(C.struct_Quad(a), C.int(rounding))
 
-	if Status(result.status)&ErrorMask != 0 { // discard informational flags, keep only error flags
+	if Status(result.status)&ErrorMask != 0 {
 		return 0, newError(Status(result.status))
 	}
 
@@ -977,12 +1046,15 @@ func (a Quad) ToInt32(rounding RoundingMode) (int32, error) {
 // ToInt64 returns the int64 value from a.
 // The rounding passed as argument is used, instead of the rounding mode of context which is ignored.
 //
+// The status field of a is not checked.
+// If you need to check the status of a, you can call a.Error().
+//
 func (a Quad) ToInt64(rounding RoundingMode) (int64, error) {
 	var result C.Ret_int64_t
 
 	result = C.mdq_to_int64(C.struct_Quad(a), C.int(rounding))
 
-	if Status(result.status)&ErrorMask != 0 { // discard informational flags, keep only error flags
+	if Status(result.status)&ErrorMask != 0 {
 		return 0, newError(Status(result.status))
 	}
 
@@ -990,6 +1062,9 @@ func (a Quad) ToInt64(rounding RoundingMode) (int64, error) {
 }
 
 // ToFloat64 returns the float64 value from a.
+//
+// The status field of a is not checked.
+// If you need to check the status of a, you can call a.Error().
 //
 func (a Quad) ToFloat64() (float64, error) {
 	var (
@@ -1008,7 +1083,7 @@ func (a Quad) ToFloat64() (float64, error) {
 	return val, nil
 }
 
-// Bytes returns the internal byte representation of the Quad.
+// Bytes returns the internal byte representation of the value field of the Quad.
 // It is not useful, except for educational purpose.
 //
 func (a Quad) Bytes() (res [DecquadBytes]byte) {

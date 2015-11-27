@@ -596,7 +596,6 @@ Ret_int32_t mdq_to_int32(Quad a, int round) {
   Ret_int32_t     res;
 
   decContextDefault(&set, DEC_INIT_DECQUAD);
-  set.status = a.status;
 
   res.val = decQuadToInt32(&a.val, &set, round);
   res.status = decContextGetStatus(&set);
@@ -616,10 +615,7 @@ Ret_int64_t mdq_to_int64(Quad a, int round) {
   int64_t      r_val;
   Ret_int64_t  res;
 
-
   decContextDefault(&set, DEC_INIT_DECQUAD);
-  set.status = a.status;
-
 
   decQuadToIntegralValue(&a_integral, &a.val, &set, round); // rounds the number to an integral. Only numbers with exponent<0 are rounded and shifted so that exponent becomes 0.
 

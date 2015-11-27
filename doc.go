@@ -11,13 +11,13 @@ Quad is immutable, as the value and status it contains are immutable.
 Quad is simply passed by value to methods or functions.
 
 
-Status 
+Status
 
 The status field in Quad contains all the flags set by all operations that have generated the value.
 
 Use the Error() method to check for errors.
 
-The status field of a Quad returned by any operation contains the combined status of the arguments, as well as the flags set by the operation. 
+The status field of a Quad returned by any operation contains the combined status of the arguments, as well as the flags set by the operation.
 Status flags accumulate and are never cleared. This way, you can make a series of operations, and just check the final result for errors.
 
 
