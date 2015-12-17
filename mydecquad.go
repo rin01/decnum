@@ -268,11 +268,15 @@ func init() {
 
 // DecNumberVersion returns the version of the original C decNumber package.
 //
+// This function is only useful if you want information about the original C decNumber package.
+//
 func DecNumberVersion() string {
 	return decNumberVersion
 }
 
 // DecNumberMacros returns the values of macros defined in the original C decNumber package.
+//
+// This function is only useful if you want information about the original C decNumber package.
 //
 func DecNumberMacros() string {
 	return decNumberMacros
@@ -836,6 +840,9 @@ func FromInt32(value int32) Quad {
 //
 // No error occurs.
 //
+// Note that FromInt64 is slower than FromInt32, because the underlying C decNumber package has no function that converts directly from int64.
+// So, int64 is first converted to string, and then to Quad.
+//
 func FromInt64(value int64) Quad {
 
 	return Quad(C.mdq_from_int64(C.int64_t(value)))
@@ -1048,6 +1055,9 @@ func (a Quad) ToInt32(rounding RoundingMode) (int32, error) {
 //
 // The status field of a is not checked.
 // If you need to check the status of a, you can call a.Error().
+//
+// Note that ToInt64 is slower than ToInt32, because the underlying C decNumber package has no function that converts directly to int64.
+// So, the number is first converted to string, and then to int64.
 //
 func (a Quad) ToInt64(rounding RoundingMode) (int64, error) {
 	var result C.Ret_int64_t
